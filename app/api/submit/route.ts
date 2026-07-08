@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendToCrm, isCrmConfigured } from "@/lib/crm";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 // ============================================================
-// Recebe o lead do formulário e grava no Supabase.
-// PRÓXIMAS FASES: webhook do CRM + eventos server-side (CAPI / GA4 MP).
+// Recebe o lead, grava no Supabase e envia ao webhook do CRM.
+// PRÓXIMA FASE: eventos server-side (Meta CAPI / GA4 MP).
 // ============================================================
 export async function POST(request: Request) {
   try {
@@ -27,21 +29,56 @@ export async function POST(request: Request) {
     };
 
     const supabase = getSupabaseAdmin();
+    let insertedId: string | null = null;
+
     if (supabase) {
-      const { error } = await supabase.from("submissions").insert(row);
+      const { data, error } = await supabase
+        .from("submissions")
+        .insert(row)
+        .select("id")
+        .single();
       if (error) {
         console.error("[Hibrid Forms] Erro ao gravar no Supabase:", error.message);
-        // Não falha a experiência do lead: registra e segue.
+      } else {
+        insertedId = data?.id ?? null;
       }
     } else {
-      console.warn(
-        "[Hibrid Forms] Supabase não configurado — lead apenas logado:",
-        JSON.stringify(row)
-      );
+      console.warn("[Hibrid Forms] Supabase não configurado — lead apenas logado.");
     }
 
-    // TODO (Fase 3): enviar para o webhook do CRM (process.env.CRM_WEBHOOK_URL)
-    // TODO (Fase 4): disparar eventos server-side (Meta CAPI / GA4 MP)
+    // Envio ao CRM (payload estruturado e padronizado)
+    if (isCrmConfigured()) {
+      const crmPayload = {
+        form: row.form_slug,
+        form_name: row.form_name,
+        nome: row.nome,
+        email: row.email,
+        telefone: row.telefone,
+        score: row.score,
+        tier: row.tier,
+        qualified: row.qualified,
+        answers: row.answers,
+        tracking: row.tracking,
+        submission_id: insertedId,
+        submitted_at: body?.submitted_at ?? new Date().toISOString(),
+      };
+      const result = await sendToCrm(crmPayload);
+
+      if (supabase && insertedId) {
+        await supabase
+          .from("submissions")
+          .update({
+            crm_status: result.ok ? "delivered" : "failed",
+            crm_attempts: result.attempts,
+            crm_error: result.error ?? null,
+            crm_delivered_at: result.ok ? new Date().toISOString() : null,
+          })
+          .eq("id", insertedId);
+      }
+      if (!result.ok) {
+        console.error("[Hibrid Forms] Falha ao enviar ao CRM:", result.error);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

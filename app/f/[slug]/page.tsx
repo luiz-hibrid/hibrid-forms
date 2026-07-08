@@ -1,18 +1,27 @@
 import { notFound } from "next/navigation";
-import { getForm } from "@/lib/forms";
+import { getFormBySlug } from "@/lib/forms-db";
 import { FormRunner } from "@/components/FormRunner";
 import { Logo } from "@/components/Logo";
 
-// SSR: a página carrega rápido e serve como página de destino de anúncio.
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const form = getForm(params.slug);
+export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const form = await getFormBySlug(params.slug);
   return {
     title: form ? `${form.name} · Hibrid` : "Formulário · Hibrid",
   };
 }
 
-export default function FormPage({ params }: { params: { slug: string } }) {
-  const form = getForm(params.slug);
+export default async function FormPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const form = await getFormBySlug(params.slug);
   if (!form) notFound();
 
   return (

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { allForms } from "@/lib/forms";
+import { listForms } from "@/lib/forms-db";
 
-export default function Home() {
-  const forms = allForms();
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const forms = (await listForms()).filter((f) => f.published);
   return (
     <main className="min-h-screen bg-[var(--bg)] flex flex-col">
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
@@ -12,7 +14,7 @@ export default function Home() {
           href="/admin"
           className="rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
         >
-          Ver leads →
+          Painel →
         </Link>
       </header>
 
@@ -20,7 +22,7 @@ export default function Home() {
         <div className="w-full max-w-[560px]">
           <span className="lbl">Formulários</span>
           <h1 className="mt-3 text-[2rem] font-black leading-tight tracking-tight text-[var(--text)]">
-            Construtor de formulários de captação
+            Formulários de captação
           </h1>
           <p className="mt-3 text-[var(--text2)]">
             Cada formulário publicado tem um link público próprio, usado como
@@ -28,6 +30,11 @@ export default function Home() {
           </p>
 
           <div className="mt-8 grid gap-3">
+            {forms.length === 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 text-sm text-[var(--text2)]">
+                Nenhum formulário publicado ainda.
+              </div>
+            )}
             {forms.map((f) => (
               <Link
                 key={f.slug}

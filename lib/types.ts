@@ -34,8 +34,8 @@ export interface Field {
 export interface Tier {
   id: string;
   name: string;
-  min: number;
-  max: number;
+  /** corte mínimo em % do score máximo do formulário (0–100) */
+  minPct: number;
   /** cor de referência para dashboards/admin */
   color: string;
 }

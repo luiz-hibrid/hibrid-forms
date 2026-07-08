@@ -87,10 +87,11 @@ export const advogados: FormConfig = {
       ],
     },
   ],
+  // Faixas por % do score máximo do formulário (teto calculado automaticamente).
   tiers: [
-    { id: "frio", name: "Frio", min: 0, max: 4, color: "#999999" },
-    { id: "morno", name: "Morno", min: 5, max: 7, color: "#F0B822" },
-    { id: "quente", name: "Quente", min: 8, max: 99, color: "#c2fb8d" },
+    { id: "frio", name: "Frio", minPct: 0, color: "#999999" },
+    { id: "morno", name: "Morno", minPct: 40, color: "#F0B822" },
+    { id: "quente", name: "Quente", minPct: 70, color: "#c2fb8d" },
   ],
   endScreens: [
     {

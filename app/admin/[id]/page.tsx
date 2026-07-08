@@ -2,18 +2,18 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getForm } from "@/lib/forms";
+import { getFormBySlug } from "@/lib/forms-db";
+import type { FormConfig } from "@/lib/types";
 import { Logo } from "@/components/Logo";
 import { TierBadge } from "@/components/TierBadge";
 
 export const dynamic = "force-dynamic";
 
 function labelFor(
-  formSlug: string,
+  form: FormConfig | null,
   fieldId: string,
   value: unknown
 ): { question: string; answer: string; weight?: number } {
-  const form = getForm(formSlug);
   const field = form?.steps.find((s) => s.id === fieldId);
   if (!field) return { question: fieldId, answer: String(value ?? "—") };
   const values = Array.isArray(value) ? value : [value];
@@ -49,6 +49,7 @@ export default async function LeadDetail({
 
   if (!data) notFound();
 
+  const form = await getFormBySlug(data.form_slug);
   const answers: Record<string, unknown> = data.answers ?? {};
   const tracking: Record<string, unknown> = data.tracking ?? {};
   const trackingEntries = Object.entries(tracking);
@@ -90,6 +91,22 @@ export default async function LeadDetail({
           </div>
         </div>
 
+        {/* Status de entrega no CRM */}
+        {data.crm_status && data.crm_status !== "pending" && (
+          <div className="mt-4 flex items-center gap-2 text-sm">
+            <span className="lbl">CRM</span>
+            {data.crm_status === "delivered" ? (
+              <span className="mono text-[0.72rem] text-[#3d7a00]">
+                ✓ entregue{data.crm_attempts ? ` (${data.crm_attempts}ª tentativa)` : ""}
+              </span>
+            ) : (
+              <span className="mono text-[0.72rem] text-[var(--red)]">
+                falha ao enviar{data.crm_error ? ` — ${data.crm_error}` : ""}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Respostas */}
         <h2 className="lbl mt-8 mb-3 block">Respostas</h2>
         <div className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-[var(--card)]">
@@ -98,7 +115,7 @@ export default async function LeadDetail({
           )}
           {Object.entries(answers).map(([fieldId, value]) => {
             const { question, answer, weight } = labelFor(
-              data.form_slug,
+              form,
               fieldId,
               value
             );

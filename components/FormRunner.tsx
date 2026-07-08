@@ -106,42 +106,40 @@ export function FormRunner({ form }: { form: FormConfig }) {
     if (index > 0) setIndex((i) => i - 1);
   }
 
-  async function finish() {
+  async function finish(finalAnswers: Answers = answers) {
     setSubmitting(true);
-    const score = computeScore(form, answers);
+    const score = computeScore(form, finalAnswers);
     const tier = resolveTier(form, score);
     const screen = form.endScreens.find((s) => s.tier === tier.id);
     const payload = {
       form: { slug: form.slug, name: form.name },
       status: "complete" as const,
-      answers,
+      answers: finalAnswers,
       score,
       tier: tier.id,
       qualified: !!screen?.qualified,
       tracking: trackingRef.current,
       submitted_at: new Date().toISOString(),
     };
-    try {
-      await fetch("/api/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } catch {
-      // Falha de rede não deve travar a experiência do lead.
-    }
-    // eslint-disable-next-line no-console
-    console.log("[Hibrid Forms] Lead:", payload);
+    // Envia sem bloquear: a tela final aparece na hora; o servidor
+    // grava no banco e dispara o webhook do CRM em segundo plano.
+    fetch("/api/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
     setSubmitting(false);
     setDone(true);
   }
 
   // Escolha única com auto-avanço
   function selectSingle(field: Field, value: string) {
+    const next = { ...answers, [field.id]: value };
     setAnswer(field.id, value);
     setTimeout(() => {
       if (index < total - 1) setIndex((i) => i + 1);
-      else finish();
+      else finish(next); // usa as respostas já com a última seleção
     }, 260);
   }
 
