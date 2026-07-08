@@ -8,7 +8,12 @@ export default function Home() {
     <main className="min-h-screen bg-[var(--bg)] flex flex-col">
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
         <Logo height={24} />
-        <span className="lbl">Painel interno</span>
+        <Link
+          href="/admin"
+          className="rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+        >
+          Ver leads →
+        </Link>
       </header>
 
       <div className="flex-1 flex items-center justify-center px-5 pb-16">
