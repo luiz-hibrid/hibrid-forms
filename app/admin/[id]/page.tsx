@@ -49,6 +49,15 @@ export default async function LeadDetail({
 
   if (!data) notFound();
 
+  const { data: formMeta } = await supabase
+    .from("forms")
+    .select("id")
+    .eq("slug", data.form_slug)
+    .maybeSingle();
+  const backHref = formMeta?.id
+    ? `/admin/forms/${formMeta.id}/respostas`
+    : "/admin/forms";
+
   const form = await getFormBySlug(data.form_slug);
   const answers: Record<string, unknown> = data.answers ?? {};
   const tracking: Record<string, unknown> = data.tracking ?? {};
@@ -58,11 +67,13 @@ export default async function LeadDetail({
     <main className="min-h-screen bg-[var(--bg)]">
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 py-4 sm:px-8">
         <div className="flex items-center gap-3">
-          <Logo height={22} />
+          <Link href="/admin/forms" aria-label="Início" className="transition hover:opacity-80">
+            <Logo height={22} />
+          </Link>
           <span className="lbl">Lead</span>
         </div>
-        <Link href="/admin" className="text-sm text-[var(--text2)] hover:text-[var(--text)]">
-          ← Voltar aos leads
+        <Link href={backHref} className="text-sm text-[var(--text2)] hover:text-[var(--text)]">
+          ← Voltar às respostas
         </Link>
       </header>
 

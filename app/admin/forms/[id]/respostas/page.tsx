@@ -66,7 +66,7 @@ export default async function FormResponsesPage({
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      <AdminHeader active="forms" />
+      <AdminHeader />
       <div className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8">
         {/* Cabeçalho do formulário */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

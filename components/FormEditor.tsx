@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Field,
@@ -36,38 +36,40 @@ const TYPE_LABELS: Record<FieldType, string> = {
   multi: "Múltipla escolha",
 };
 
+// Metadados visuais por tipo (cor + ícone), estilo Yay
+const TYPE_META: Record<
+  FieldType,
+  { label: string; color: string; icon: string }
+> = {
+  single: { label: "Escolha única", color: "#4f7cff", icon: "◉" },
+  multi: { label: "Múltipla escolha", color: "#4f7cff", icon: "☑" },
+  name: { label: "Nome", color: "#22b07d", icon: "A" },
+  email: { label: "E-mail", color: "#22b07d", icon: "@" },
+  tel: { label: "Telefone", color: "#22b07d", icon: "✆" },
+  link: { label: "Site / link", color: "#22b07d", icon: "🔗" },
+  text: { label: "Texto longo", color: "#e0a52b", icon: "¶" },
+  welcome: { label: "Tela de boas-vindas", color: "#9b6dff", icon: "👋" },
+};
+
 // Menu de campos categorizado (estilo Yay)
-const ADD_CATEGORIES: {
-  label: string;
-  items: { type: FieldType; label: string; color: string; icon: string }[];
-}[] = [
-  {
-    label: "Escolhas",
-    items: [
-      { type: "single", label: "Escolha única", color: "#4f7cff", icon: "◉" },
-      { type: "multi", label: "Múltipla escolha", color: "#4f7cff", icon: "☑" },
-    ],
-  },
-  {
-    label: "Contato",
-    items: [
-      { type: "name", label: "Nome", color: "#22b07d", icon: "A" },
-      { type: "email", label: "E-mail", color: "#22b07d", icon: "@" },
-      { type: "tel", label: "Telefone", color: "#22b07d", icon: "✆" },
-      { type: "link", label: "Site / link", color: "#22b07d", icon: "🔗" },
-    ],
-  },
-  {
-    label: "Texto",
-    items: [{ type: "text", label: "Texto longo", color: "#e0a52b", icon: "¶" }],
-  },
-  {
-    label: "Estrutura",
-    items: [
-      { type: "welcome", label: "Tela de boas-vindas", color: "#9b6dff", icon: "✦" },
-    ],
-  },
+const ADD_CATEGORIES: { label: string; types: FieldType[] }[] = [
+  { label: "Escolhas", types: ["single", "multi"] },
+  { label: "Contato", types: ["name", "email", "tel", "link"] },
+  { label: "Texto", types: ["text"] },
+  { label: "Estrutura", types: ["welcome"] },
 ];
+
+function ColorIcon({ type, size = 24 }: { type: FieldType; size?: number }) {
+  const m = TYPE_META[type];
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-md text-white"
+      style={{ background: m.color, width: size, height: size, fontSize: size * 0.5 }}
+    >
+      {m.icon}
+    </span>
+  );
+}
 
 function genId(prefix = "campo") {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
@@ -110,6 +112,17 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     (cfg.steps ?? [])[0] ? "step:0" : ""
   );
   const [addOpen, setAddOpen] = useState(false);
+  const addBtnRef = useRef<HTMLButtonElement>(null);
+  const [addPos, setAddPos] = useState<{ top: number; left: number } | null>(null);
+  function toggleAdd() {
+    if (addOpen) {
+      setAddOpen(false);
+      return;
+    }
+    const r = addBtnRef.current?.getBoundingClientRect();
+    if (r) setAddPos({ top: r.top, left: r.right + 12 });
+    setAddOpen(true);
+  }
 
   const maxScore = useMemo(() => {
     let max = 0;
@@ -327,19 +340,20 @@ export function FormEditor({ initial }: { initial: FormRow }) {
 
         {/* Nav pílula central */}
         <div className="hidden items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
-          <NavPill active={topTab === "edit"} onClick={() => setTopTab("edit")}>
+          <NavPill active={topTab === "edit"} onClick={() => setTopTab("edit")} icon={<IconEdit />}>
             Editor
           </NavPill>
-          <NavPill active={topTab === "integrate"} onClick={() => setTopTab("integrate")}>
+          <NavPill active={topTab === "integrate"} onClick={() => setTopTab("integrate")} icon={<IconIntegrate />}>
             Integrações
           </NavPill>
-          <NavPill active={topTab === "share"} onClick={() => setTopTab("share")}>
+          <NavPill active={topTab === "share"} onClick={() => setTopTab("share")} icon={<IconShare />}>
             Compartilhar
           </NavPill>
           <a
             href={`/admin/forms/${initial.id}/respostas`}
-            className="rounded-full px-4 py-1.5 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+            className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
           >
+            <IconResults />
             Resultados
           </a>
         </div>
@@ -394,47 +408,61 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                           : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
                       }`}
                     >
+                      <ColorIcon type={s.type} size={28} />
                       <span className="mono text-[0.62rem] text-[var(--text3)]">
                         {i + 1}
                       </span>
                       <span className="flex-1 truncate text-[var(--text)]">
                         {s.title || "(sem título)"}
                       </span>
-                      <TypeTag type={s.type} />
                     </button>
                   ))}
                 </div>
 
-                <div className="relative mt-2">
+                <div className="mt-2">
                   <button
-                    onClick={() => setAddOpen((v) => !v)}
+                    ref={addBtnRef}
+                    onClick={toggleAdd}
                     className="w-full rounded-lg border border-dashed border-[var(--border)] py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
                   >
                     + Adicionar campo
                   </button>
-                  {addOpen && (
-                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-xl">
-                      {ADD_CATEGORIES.map((cat) => (
-                        <div key={cat.label} className="mb-2 last:mb-0">
-                          <div className="lbl px-1 pb-1">{cat.label}</div>
-                          {cat.items.map((it) => (
-                            <button
-                              key={it.type}
-                              onClick={() => addStep(it.type)}
-                              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--text)] hover:bg-[var(--bg)]"
-                            >
-                              <span
-                                className="flex h-6 w-6 items-center justify-center rounded-md text-xs text-white"
-                                style={{ background: it.color }}
-                              >
-                                {it.icon}
-                              </span>
-                              {it.label}
-                            </button>
+                  {addOpen && addPos && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setAddOpen(false)}
+                      />
+                      <div
+                        className="fixed z-50 w-[500px] max-w-[calc(100vw-40px)] rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-2xl"
+                        style={{
+                          top: Math.min(addPos.top, window.innerHeight - 420),
+                          left: addPos.left,
+                          maxHeight: "70vh",
+                          overflowY: "auto",
+                        }}
+                      >
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                          {ADD_CATEGORIES.map((cat) => (
+                            <div key={cat.label}>
+                              <div className="lbl mb-2">{cat.label}</div>
+                              <div className="grid gap-0.5">
+                                {cat.types.map((t) => (
+                                  <button
+                                    key={t}
+                                    onClick={() => addStep(t)}
+                                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-[var(--text)] transition hover:bg-[var(--bg)]"
+                                  >
+                                    <ColorIcon type={t} size={26} />
+                                    {TYPE_META[t].label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
                           ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -538,20 +566,22 @@ export function FormEditor({ initial }: { initial: FormRow }) {
 
           {/* Coluna central — preview */}
           <div className="flex flex-1 flex-col overflow-hidden bg-[var(--bg)]">
-            <div className="flex items-center justify-center gap-1 border-b border-[var(--border)] py-2">
-              {(["desktop", "tablet", "mobile"] as const).map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDevice(d)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
-                    device === d
-                      ? "bg-[var(--text)] text-white"
-                      : "text-[var(--text2)] hover:text-[var(--text)]"
-                  }`}
-                >
-                  {d === "desktop" ? "Desktop" : d === "tablet" ? "Tablet" : "Mobile"}
-                </button>
-              ))}
+            <div className="flex items-center justify-center border-b border-[var(--border)] py-2.5">
+              <div className="flex items-center gap-1 rounded-full bg-[var(--bg)] p-1">
+                {(["desktop", "tablet", "mobile"] as const).map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDevice(d)}
+                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
+                      device === d
+                        ? "bg-[var(--card)] text-[var(--text)] shadow-sm"
+                        : "text-[var(--text2)] hover:text-[var(--text)]"
+                    }`}
+                  >
+                    {d === "desktop" ? "Desktop" : d === "tablet" ? "Tablet" : "Mobile"}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex flex-1 items-start justify-center overflow-y-auto p-6">
               <div
@@ -1112,21 +1142,62 @@ const inputCls =
 function NavPill({
   active,
   onClick,
+  icon,
   children,
 }: {
   active: boolean;
   onClick: () => void;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+      className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
         active ? "bg-[var(--text)] text-white" : "text-[var(--text2)] hover:text-[var(--text)]"
       }`}
     >
+      {icon}
       {children}
     </button>
+  );
+}
+
+// Ícones do menu do topo (estilo Yay)
+function IconEdit() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  );
+}
+function IconIntegrate() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="2.4" />
+      <circle cx="6" cy="18" r="2.4" />
+      <circle cx="18" cy="18" r="2.4" />
+      <path d="M12 7.4v3.2M10.2 16.4L7.6 14M13.8 16.4L16.4 14" />
+    </svg>
+  );
+}
+function IconShare() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="2.4" />
+      <circle cx="6" cy="12" r="2.4" />
+      <circle cx="18" cy="19" r="2.4" />
+      <path d="M8.1 10.9l7.8-4.6M8.1 13.1l7.8 4.6" />
+    </svg>
+  );
+}
+function IconResults() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15.5A9 9 0 1 1 8.5 3" />
+      <path d="M21.5 12A9.5 9.5 0 0 0 12 2.5V12z" />
+    </svg>
   );
 }
 
@@ -1153,24 +1224,6 @@ function SideTab({
 
 function ListLabel({ children }: { children: React.ReactNode }) {
   return <div className="lbl mb-2 block">{children}</div>;
-}
-
-function TypeTag({ type }: { type: FieldType }) {
-  const short: Record<FieldType, string> = {
-    welcome: "Início",
-    text: "Texto",
-    name: "Nome",
-    email: "E-mail",
-    tel: "Tel",
-    link: "Link",
-    single: "Única",
-    multi: "Múltipla",
-  };
-  return (
-    <span className="mono rounded bg-[var(--bg)] px-1.5 py-0.5 text-[0.55rem] uppercase text-[var(--text3)]">
-      {short[type]}
-    </span>
-  );
 }
 
 function FieldRow({
