@@ -647,14 +647,10 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                       placeholder="Ex.: Diagnóstico gratuito"
                     />
                   </FieldRow>
-                  <label className="mt-1 flex items-center gap-2 text-sm text-[var(--text2)]">
-                    <input
-                      type="checkbox"
-                      checked={published}
-                      onChange={(e) => setPublished(e.target.checked)}
-                    />
-                    Publicado
-                  </label>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm text-[var(--text)]">Publicado</span>
+                    <Toggle checked={published} onChange={setPublished} />
+                  </div>
                 </div>
 
                 <div>
@@ -1126,14 +1122,13 @@ function EndingSettings({
           placeholder="https:// ou https://wa.me/..."
         />
       </FieldRow>
-      <label className="mt-1 flex items-center gap-2 text-sm text-[var(--text2)]">
-        <input
-          type="checkbox"
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-sm text-[var(--text)]">Marcar como lead qualificado</span>
+        <Toggle
           checked={!!es.qualified}
-          onChange={(e) => update({ qualified: e.target.checked })}
+          onChange={(v) => update({ qualified: v })}
         />
-        Marcar como lead qualificado
-      </label>
+      </div>
     </div>
   );
 }
