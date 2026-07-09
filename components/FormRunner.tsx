@@ -53,7 +53,24 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const trackingRef = useRef<Record<string, string>>({});
+  const startedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function track(type: "view" | "start") {
+    try {
+      fetch("/api/track", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ form: form.slug, type }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  }
+  function fireStart() {
+    if (startedRef.current) return;
+    startedRef.current = true;
+    track("start");
+  }
 
   const total = form.steps.length;
   const step = form.steps[index];
@@ -84,6 +101,8 @@ export function FormRunner({ form }: { form: FormConfig }) {
       if (val) t[key] = val;
     }
     trackingRef.current = t;
+    track("view");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Foca o input ao trocar de etapa
@@ -137,6 +156,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
   }
 
   function goNext() {
+    fireStart();
     const err = validate(step);
     if (err) {
       setError(err);
@@ -205,6 +225,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
 
   // Escolha única com auto-avanço + roteamento condicional
   function selectSingle(field: Field, value: string) {
+    fireStart();
     const next = { ...answers, [field.id]: value };
     const opt = field.options?.find((o) => o.value === value);
     const target = nextIndexFromOption(opt);
