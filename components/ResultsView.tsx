@@ -22,6 +22,18 @@ interface Submission {
   updated_at: string;
 }
 
+function shortDate(iso: string): string {
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
+}
+
 function relativeTime(iso: string): string {
   try {
     const diff = Date.now() - new Date(iso).getTime();
@@ -427,7 +439,7 @@ function Kanban({
                 if (dragId) moveCard(dragId, col.id);
                 setDragId(null);
               }}
-              className="flex max-h-[70vh] w-[300px] shrink-0 flex-col rounded-2xl bg-[var(--bg)] p-3"
+              className="flex max-h-[75vh] w-[310px] shrink-0 flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3"
             >
               <div className="mb-3 flex items-center justify-between">
                 <button
@@ -444,10 +456,15 @@ function Kanban({
                   <button onClick={() => removeColumn(col.id)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Remover coluna">⋯</button>
                 </div>
               </div>
-              <div className="flex-1 space-y-2 overflow-y-auto">
+              <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
                 {colCards.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-[var(--border)] py-8 text-center text-xs text-[var(--text3)]">
-                    Sem leads nesta etapa
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl bg-[var(--bg)] py-16 text-center">
+                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-[var(--text3)]">
+                      <rect x="3" y="4" width="5" height="16" rx="1.2" />
+                      <rect x="9.5" y="4" width="5" height="16" rx="1.2" />
+                      <rect x="16" y="4" width="5" height="16" rx="1.2" />
+                    </svg>
+                    <span className="mt-2 text-xs text-[var(--text3)]">Sem leads nesta etapa</span>
                   </div>
                 )}
                 {colCards.map((c) => (
@@ -457,16 +474,35 @@ function Kanban({
                     onDragStart={() => setDragId(c.id)}
                     onDragEnd={() => setDragId(null)}
                     onClick={() => setSelectedId(c.id)}
-                    className={`block cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 transition hover:border-[#bbb] ${
+                    className={`cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition hover:border-[#ccc] hover:shadow-md ${
                       dragId === c.id ? "opacity-40" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate font-bold text-[var(--text)]">{c.nome || "Lead"}</span>
-                      <TierBadge tier={c.tier} />
+                      <span className="mono truncate text-[0.6rem] text-[var(--text3)]">
+                        #{c.id.slice(0, 10)}
+                      </span>
+                      <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
+                        {shortDate(c.created_at)}
+                      </span>
                     </div>
-                    <div className="mono mt-1 truncate text-[0.7rem] text-[var(--text3)]">
-                      {c.email || c.telefone || "—"}
+                    <div className="mt-1 truncate font-bold text-[var(--text)]">{c.nome || "Lead"}</div>
+                    {c.telefone && (
+                      <div className="truncate text-sm text-[var(--text2)]">{c.telefone}</div>
+                    )}
+                    {c.email && (
+                      <div className="truncate text-sm text-[var(--text2)]">{c.email}</div>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {c.status === "complete" && (
+                        <span className="mono rounded-full bg-[rgba(194,251,141,0.25)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+                          🎉 Completa
+                        </span>
+                      )}
+                      <TierBadge tier={c.tier} />
+                      <span className="mono text-[0.6rem] text-[var(--text3)]">
+                        {relativeTime(c.created_at)}
+                      </span>
                     </div>
                     {c.labels?.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
