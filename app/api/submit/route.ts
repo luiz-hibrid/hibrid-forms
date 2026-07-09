@@ -48,8 +48,12 @@ export async function POST(request: Request) {
       console.warn("[Hibrid Forms] Supabase não configurado — lead apenas logado.");
     }
 
+    // Carrega o formulário uma vez (webhook + pixel por formulário)
+    const fullForm = await getFormBySlug(row.form_slug);
+    const formWebhook = (fullForm as unknown as { webhookUrl?: string })?.webhookUrl;
+
     // Envio ao CRM (payload estruturado e padronizado)
-    if (isCrmConfigured()) {
+    if (isCrmConfigured(formWebhook)) {
       const crmPayload = {
         form: row.form_slug,
         form_name: row.form_name,
@@ -64,7 +68,7 @@ export async function POST(request: Request) {
         submission_id: insertedId,
         submitted_at: body?.submitted_at ?? new Date().toISOString(),
       };
-      const result = await sendToCrm(crmPayload);
+      const result = await sendToCrm(crmPayload, formWebhook);
 
       if (supabase && insertedId) {
         await supabase
@@ -85,7 +89,6 @@ export async function POST(request: Request) {
     // Eventos server-side (Meta CAPI + GA4 MP) — usa a config de pixel do form
     const pe = body?.pixel_event ?? {};
     if (pe.event_id) {
-      const fullForm = await getFormBySlug(row.form_slug);
       const pixel = fullForm?.pixel;
       if (pixel && (pixel.metaCapiToken || pixel.ga4ApiSecret)) {
         const ip =

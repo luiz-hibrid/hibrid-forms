@@ -12,14 +12,22 @@ export interface CrmResult {
   error?: string;
 }
 
-export function isCrmConfigured(): boolean {
-  return Boolean(process.env.CRM_WEBHOOK_URL);
+/** URL efetiva: prioriza a do formulário, cai para a variável global. */
+export function resolveCrmUrl(formUrl?: string | null): string | undefined {
+  return (formUrl && formUrl.trim()) || process.env.CRM_WEBHOOK_URL || undefined;
+}
+
+export function isCrmConfigured(formUrl?: string | null): boolean {
+  return Boolean(resolveCrmUrl(formUrl));
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function sendToCrm(payload: unknown): Promise<CrmResult> {
-  const url = process.env.CRM_WEBHOOK_URL;
+export async function sendToCrm(
+  payload: unknown,
+  formUrl?: string | null
+): Promise<CrmResult> {
+  const url = resolveCrmUrl(formUrl);
   if (!url) return { ok: false, attempts: 0, error: "sem_url" };
 
   const token = process.env.CRM_WEBHOOK_TOKEN;

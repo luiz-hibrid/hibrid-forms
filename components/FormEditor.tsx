@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
 import type { FormRow } from "@/lib/forms-db";
+import { Logo } from "@/components/Logo";
 
 // slugify local (evita importar módulo de servidor no client)
 function slugify(input: string): string {
@@ -26,24 +27,46 @@ function slugify(input: string): string {
 
 const TYPE_LABELS: Record<FieldType, string> = {
   welcome: "Tela de boas-vindas",
-  text: "Texto",
+  text: "Texto longo",
   name: "Nome",
   email: "E-mail",
   tel: "Telefone / WhatsApp",
   link: "Link / site",
-  single: "Escolha única (pontuável)",
-  multi: "Múltipla escolha (pontuável)",
+  single: "Escolha única",
+  multi: "Múltipla escolha",
 };
 
-const TYPE_OPTIONS: FieldType[] = [
-  "welcome",
-  "text",
-  "name",
-  "email",
-  "tel",
-  "link",
-  "single",
-  "multi",
+// Menu de campos categorizado (estilo Yay)
+const ADD_CATEGORIES: {
+  label: string;
+  items: { type: FieldType; label: string; color: string; icon: string }[];
+}[] = [
+  {
+    label: "Escolhas",
+    items: [
+      { type: "single", label: "Escolha única", color: "#4f7cff", icon: "◉" },
+      { type: "multi", label: "Múltipla escolha", color: "#4f7cff", icon: "☑" },
+    ],
+  },
+  {
+    label: "Contato",
+    items: [
+      { type: "name", label: "Nome", color: "#22b07d", icon: "A" },
+      { type: "email", label: "E-mail", color: "#22b07d", icon: "@" },
+      { type: "tel", label: "Telefone", color: "#22b07d", icon: "✆" },
+      { type: "link", label: "Site / link", color: "#22b07d", icon: "🔗" },
+    ],
+  },
+  {
+    label: "Texto",
+    items: [{ type: "text", label: "Texto longo", color: "#e0a52b", icon: "¶" }],
+  },
+  {
+    label: "Estrutura",
+    items: [
+      { type: "welcome", label: "Tela de boas-vindas", color: "#9b6dff", icon: "✦" },
+    ],
+  },
 ];
 
 function genId(prefix = "campo") {
@@ -54,31 +77,39 @@ interface EditorField extends Field {
   _key: string;
 }
 
+type TopTab = "edit" | "integrate" | "share";
+
 export function FormEditor({ initial }: { initial: FormRow }) {
   const router = useRouter();
-  const cfg = initial.config ?? ({} as FormRow["config"]);
+  const cfg = (initial.config ?? {}) as any;
 
   const [name, setName] = useState(initial.name);
   const [slug, setSlug] = useState(initial.slug);
   const [published, setPublished] = useState(initial.published);
-  const [eyebrow, setEyebrow] = useState((cfg as any).eyebrow ?? "");
+  const [eyebrow, setEyebrow] = useState(cfg.eyebrow ?? "");
   const [steps, setSteps] = useState<EditorField[]>(
-    ((cfg as any).steps ?? []).map((s: Field) => ({ ...s, _key: genId("k") }))
+    (cfg.steps ?? []).map((s: Field) => ({ ...s, _key: genId("k") }))
   );
   const [tiers, setTiers] = useState<Tier[]>(
-    (cfg as any).tiers ?? [
+    cfg.tiers ?? [
       { id: "frio", name: "Frio", minPct: 0, color: "#999999" },
       { id: "morno", name: "Morno", minPct: 40, color: "#F0B822" },
       { id: "quente", name: "Quente", minPct: 70, color: "#c2fb8d" },
     ]
   );
-  const [endScreens, setEndScreens] = useState<EndScreen[]>(
-    (cfg as any).endScreens ?? []
-  );
-  const [pixel, setPixel] = useState<PixelConfig>((cfg as any).pixel ?? {});
+  const [endScreens, setEndScreens] = useState<EndScreen[]>(cfg.endScreens ?? []);
+  const [pixel, setPixel] = useState<PixelConfig>(cfg.pixel ?? {});
+  const [webhookUrl, setWebhookUrl] = useState<string>(cfg.webhookUrl ?? "");
+
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [tab, setTab] = useState<"editor" | "opcoes">("editor");
+  const [topTab, setTopTab] = useState<TopTab>("edit");
+  const [leftTab, setLeftTab] = useState<"content" | "settings">("content");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [selected, setSelected] = useState<string>(
+    (cfg.steps ?? [])[0] ? "step:0" : ""
+  );
+  const [addOpen, setAddOpen] = useState(false);
 
   const maxScore = useMemo(() => {
     let max = 0;
@@ -91,28 +122,40 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     return max;
   }, [steps]);
 
-  // ---- steps ----
+  // seleção: "step:<_key>" | "end:<tierId>"
+  const selectedStep = steps.find((s) => `step:${s._key}` === selected) ?? null;
+  const selectedEndingTier = selected.startsWith("end:")
+    ? selected.slice(4)
+    : null;
+
+  // ---------- steps ----------
   function updateStep(key: string, patch: Partial<EditorField>) {
     setSteps((prev) => prev.map((s) => (s._key === key ? { ...s, ...patch } : s)));
   }
-  function addStep() {
-    setSteps((prev) => [
-      ...prev,
-      {
-        _key: genId("k"),
-        id: genId(),
-        type: "single",
-        title: "Nova pergunta",
-        required: true,
-        options: [
-          { label: "Opção 1", value: "opcao-1", weight: 1 },
-          { label: "Opção 2", value: "opcao-2", weight: 2 },
-        ],
-      },
-    ]);
+  function addStep(type: FieldType) {
+    const key = genId("k");
+    const base: EditorField = {
+      _key: key,
+      id: genId(),
+      type,
+      title: type === "welcome" ? "Bem-vindo!" : "Nova pergunta",
+      ...(type === "welcome" ? { buttonLabel: "Começar" } : { required: true }),
+      ...(type === "single" || type === "multi"
+        ? {
+            options: [
+              { label: "Opção 1", value: "opcao-1", weight: 1 },
+              { label: "Opção 2", value: "opcao-2", weight: 2 },
+            ],
+          }
+        : {}),
+    };
+    setSteps((prev) => [...prev, base]);
+    setSelected(`step:${key}`);
+    setAddOpen(false);
   }
   function removeStep(key: string) {
     setSteps((prev) => prev.filter((s) => s._key !== key));
+    setSelected("");
   }
   function moveStep(key: string, dir: -1 | 1) {
     setSteps((prev) => {
@@ -125,27 +168,25 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     });
   }
   function changeType(key: string, type: FieldType) {
+    const cur = steps.find((s) => s._key === key);
     updateStep(key, {
       type,
       options:
         type === "single" || type === "multi"
-          ? // mantém opções existentes ou cria padrão
-            (steps.find((s) => s._key === key)?.options ?? [
-              { label: "Opção 1", value: "opcao-1", weight: 1 },
-            ])
+          ? cur?.options ?? [{ label: "Opção 1", value: "opcao-1", weight: 1 }]
           : undefined,
     });
   }
 
-  // ---- options ----
+  // ---------- options ----------
   function updateOption(key: string, idx: number, patch: Partial<Option>) {
     setSteps((prev) =>
       prev.map((s) => {
         if (s._key !== key || !s.options) return s;
-        const options = s.options.map((o, i) =>
-          i === idx ? { ...o, ...patch } : o
-        );
-        return { ...s, options };
+        return {
+          ...s,
+          options: s.options.map((o, i) => (i === idx ? { ...o, ...patch } : o)),
+        };
       })
     );
   }
@@ -174,7 +215,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     );
   }
 
-  // ---- tiers / endscreens ----
+  // ---------- tiers / endscreens / pixel ----------
   function updateTier(id: string, patch: Partial<Tier>) {
     setTiers((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
@@ -194,26 +235,21 @@ export function FormEditor({ initial }: { initial: FormRow }) {
       return [...prev, { ...endScreenFor(tierId), ...patch }];
     });
   }
-
   function updatePixel(patch: Partial<PixelConfig>) {
     setPixel((p) => ({ ...p, ...patch }));
   }
 
-  // ---- save ----
+  // ---------- save ----------
   function buildConfig() {
     const finalSteps: Field[] = steps.map((s) => {
-      const base: Field = {
-        id: s.id || genId(),
-        type: s.type,
-        title: s.title,
-      };
-      if (s.subtitle) base.subtitle = s.subtitle;
-      if (s.placeholder) base.placeholder = s.placeholder;
-      if (s.required) base.required = true;
-      if (s.buttonLabel) base.buttonLabel = s.buttonLabel;
+      const b: Field = { id: s.id || genId(), type: s.type, title: s.title };
+      if (s.subtitle) b.subtitle = s.subtitle;
+      if (s.placeholder) b.placeholder = s.placeholder;
+      if (s.required) b.required = true;
+      if (s.buttonLabel) b.buttonLabel = s.buttonLabel;
       if (s.type === "single" || s.type === "multi") {
         const seen: Record<string, boolean> = {};
-        base.options = (s.options ?? []).map((o, i) => {
+        b.options = (s.options ?? []).map((o, i) => {
           let v = o.value || slugify(o.label) || `op_${i + 1}`;
           while (seen[v]) v = `${v}_${i + 1}`;
           seen[v] = true;
@@ -224,14 +260,21 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           return opt;
         });
       }
-      return base;
+      return b;
     });
     const cleanPixel: PixelConfig = {};
     (Object.keys(pixel) as (keyof PixelConfig)[]).forEach((k) => {
       const v = (pixel[k] || "").trim();
       if (v) cleanPixel[k] = v;
     });
-    return { eyebrow, steps: finalSteps, tiers, endScreens, pixel: cleanPixel };
+    return {
+      eyebrow,
+      steps: finalSteps,
+      tiers,
+      endScreens,
+      pixel: cleanPixel,
+      webhookUrl: webhookUrl.trim() || undefined,
+    };
   }
 
   async function save() {
@@ -245,40 +288,66 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     const data = await res.json().catch(() => ({}));
     setSaving(false);
     if (res.ok) {
-      setMsg("Salvo com sucesso.");
+      setMsg("Salvo");
       if (data.slug && data.slug !== slug) setSlug(data.slug);
       router.refresh();
+      setTimeout(() => setMsg(null), 2500);
     } else {
-      setMsg(
-        data.error === "slug_em_uso"
-          ? "Esse endereço (slug) já está em uso."
-          : "Erro ao salvar."
-      );
+      setMsg(data.error === "slug_em_uso" ? "Slug já em uso" : "Erro ao salvar");
     }
   }
 
   async function deleteForm() {
     if (
       !confirm(
-        `Excluir o formulário "${name}" e todas as suas respostas? Essa ação não pode ser desfeita.`
+        `Excluir "${name}" e todas as respostas? Não pode ser desfeito.`
       )
     )
       return;
-    const res = await fetch(`/api/admin/forms/${initial.id}`, {
-      method: "DELETE",
-    });
+    const res = await fetch(`/api/admin/forms/${initial.id}`, { method: "DELETE" });
     if (res.ok) router.push("/admin/forms");
     else alert("Não foi possível excluir.");
   }
 
   return (
-    <div className="mx-auto max-w-[820px] px-5 py-8 sm:px-8">
-      {/* Barra superior */}
-      <div className="sticky top-0 z-10 -mx-5 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--bg)]/90 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8">
-        <a href="/admin/forms" className="text-sm text-[var(--text2)] hover:text-[var(--text)]">
-          ← Formulários
-        </a>
+    <div className="flex h-screen flex-col bg-[var(--bg)]">
+      {/* ===== Top bar ===== */}
+      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/admin/forms")}
+            className="text-[var(--text2)] hover:text-[var(--text)]"
+            aria-label="Voltar"
+          >
+            ←
+          </button>
+          <Logo height={20} />
+          <span className="text-sm font-medium text-[var(--text2)]">{name}</span>
+        </div>
+
+        {/* Nav pílula central */}
+        <div className="hidden items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
+          <NavPill active={topTab === "edit"} onClick={() => setTopTab("edit")}>
+            Editor
+          </NavPill>
+          <NavPill active={topTab === "integrate"} onClick={() => setTopTab("integrate")}>
+            Integrações
+          </NavPill>
+          <NavPill active={topTab === "share"} onClick={() => setTopTab("share")}>
+            Compartilhar
+          </NavPill>
+          <a
+            href={`/admin/forms/${initial.id}/respostas`}
+            className="rounded-full px-4 py-1.5 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+          >
+            Resultados
+          </a>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {msg && (
+            <span className="mono text-[0.7rem] text-[var(--text3)]">{msg}</span>
+          )}
           <a
             href={`/f/${slug}`}
             target="_blank"
@@ -287,391 +356,760 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           >
             Ver ↗
           </a>
-          <label className="flex items-center gap-2 text-sm text-[var(--text2)]">
-            <input
-              type="checkbox"
-              checked={published}
-              onChange={(e) => setPublished(e.target.checked)}
-            />
-            Publicado
-          </label>
-          {msg && (
-            <span
-              className={`mono text-[0.72rem] ${
-                msg.includes("sucesso") ? "text-[#3d7a00]" : "text-[var(--red)]"
-              }`}
-            >
-              {msg}
-            </span>
-          )}
           <button
             onClick={save}
             disabled={saving}
-            className="rounded-full bg-[var(--accent)] px-5 py-2.5 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--acc2)] disabled:opacity-45"
+            className="rounded-full bg-[var(--accent)] px-5 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--acc2)] disabled:opacity-45"
           >
             {saving ? "Salvando…" : "Salvar"}
           </button>
         </div>
       </div>
 
-      {/* Abas */}
-      <div className="mb-6 flex items-center gap-1 border-b border-[var(--border)]">
-        <TabBtn active={tab === "editor"} onClick={() => setTab("editor")}>
-          Editor
-        </TabBtn>
-        <TabBtn active={tab === "opcoes"} onClick={() => setTab("opcoes")}>
-          Opções
-        </TabBtn>
-      </div>
+      {/* ===== Conteúdo ===== */}
+      {topTab === "edit" && (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Coluna esquerda */}
+          <aside className="w-[280px] shrink-0 overflow-y-auto border-r border-[var(--border)] bg-[var(--card)] p-3">
+            <div className="mb-3 flex items-center gap-1 rounded-lg bg-[var(--bg)] p-1">
+              <SideTab active={leftTab === "content"} onClick={() => setLeftTab("content")}>
+                Conteúdo
+              </SideTab>
+              <SideTab active={leftTab === "settings"} onClick={() => setLeftTab("settings")}>
+                Ajustes
+              </SideTab>
+            </div>
 
-      {/* ===================== ABA OPÇÕES ===================== */}
-      {tab === "opcoes" && (
-        <>
-      <Section title="Identificação">
-        <FieldRow label="Nome do formulário">
-          <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
-        </FieldRow>
-        <FieldRow label="Endereço público (slug)">
-          <div className="flex items-center gap-2">
-            <span className="mono text-[0.8rem] text-[var(--text3)]">/f/</span>
-            <input
-              className={inputCls}
-              value={slug}
-              onChange={(e) => setSlug(slugify(e.target.value))}
-              placeholder="advogados"
-            />
-          </div>
-        </FieldRow>
-        <FieldRow label="Selo de topo (opcional)">
-          <input
-            className={inputCls}
-            value={eyebrow}
-            onChange={(e) => setEyebrow(e.target.value)}
-            placeholder="Ex.: Diagnóstico gratuito"
-          />
-        </FieldRow>
-      </Section>
-        </>
-      )}
-
-      {/* ===================== ABA EDITOR ===================== */}
-      {tab === "editor" && (
-      <Section
-        title="Perguntas"
-        right={
-          <span className="mono text-[0.72rem] text-[var(--text3)]">
-            Score máximo: {maxScore}
-          </span>
-        }
-      >
-        <div className="grid gap-3">
-          {steps.map((s, i) => (
-            <div
-              key={s._key}
-              className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <select
-                  value={s.type}
-                  onChange={(e) => changeType(s._key, e.target.value as FieldType)}
-                  className="rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-sm"
-                >
-                  {TYPE_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {TYPE_LABELS[t]}
-                    </option>
+            {leftTab === "content" && (
+              <div>
+                <ListLabel>Perguntas</ListLabel>
+                <div className="grid gap-1.5">
+                  {steps.map((s, i) => (
+                    <button
+                      key={s._key}
+                      onClick={() => setSelected(`step:${s._key}`)}
+                      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        selected === `step:${s._key}`
+                          ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
+                          : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
+                      }`}
+                    >
+                      <span className="mono text-[0.62rem] text-[var(--text3)]">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1 truncate text-[var(--text)]">
+                        {s.title || "(sem título)"}
+                      </span>
+                      <TypeTag type={s.type} />
+                    </button>
                   ))}
-                </select>
-                <div className="flex items-center gap-1">
-                  <IconBtn label="Subir" onClick={() => moveStep(s._key, -1)} disabled={i === 0}>↑</IconBtn>
-                  <IconBtn label="Descer" onClick={() => moveStep(s._key, 1)} disabled={i === steps.length - 1}>↓</IconBtn>
-                  <IconBtn label="Remover" onClick={() => removeStep(s._key)} danger>✕</IconBtn>
+                </div>
+
+                <div className="relative mt-2">
+                  <button
+                    onClick={() => setAddOpen((v) => !v)}
+                    className="w-full rounded-lg border border-dashed border-[var(--border)] py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+                  >
+                    + Adicionar campo
+                  </button>
+                  {addOpen && (
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-2 shadow-xl">
+                      {ADD_CATEGORIES.map((cat) => (
+                        <div key={cat.label} className="mb-2 last:mb-0">
+                          <div className="lbl px-1 pb-1">{cat.label}</div>
+                          {cat.items.map((it) => (
+                            <button
+                              key={it.type}
+                              onClick={() => addStep(it.type)}
+                              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--text)] hover:bg-[var(--bg)]"
+                            >
+                              <span
+                                className="flex h-6 w-6 items-center justify-center rounded-md text-xs text-white"
+                                style={{ background: it.color }}
+                              >
+                                {it.icon}
+                              </span>
+                              {it.label}
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-5">
+                  <ListLabel>Telas finais</ListLabel>
+                  <div className="grid gap-1.5">
+                    {tiers.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelected(`end:${t.id}`)}
+                        className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                          selected === `end:${t.id}`
+                            ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
+                            : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
+                        }`}
+                      >
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ background: t.color }}
+                        />
+                        <span className="flex-1 text-[var(--text)]">{t.name}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+            )}
 
-              <input
-                className={inputCls}
-                value={s.title}
-                onChange={(e) => updateStep(s._key, { title: e.target.value })}
-                placeholder="Título da pergunta"
-              />
-              <input
-                className={`${inputCls} mt-2`}
-                value={s.subtitle ?? ""}
-                onChange={(e) => updateStep(s._key, { subtitle: e.target.value })}
-                placeholder="Subtítulo / ajuda (opcional)"
-              />
+            {leftTab === "settings" && (
+              <div className="grid gap-4">
+                <div>
+                  <ListLabel>Identificação</ListLabel>
+                  <FieldRow label="Nome do formulário">
+                    <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
+                  </FieldRow>
+                  <FieldRow label="Endereço público (slug)">
+                    <div className="flex items-center gap-1">
+                      <span className="mono text-[0.75rem] text-[var(--text3)]">/f/</span>
+                      <input
+                        className={inputCls}
+                        value={slug}
+                        onChange={(e) => setSlug(slugify(e.target.value))}
+                      />
+                    </div>
+                  </FieldRow>
+                  <FieldRow label="Selo de topo (opcional)">
+                    <input
+                      className={inputCls}
+                      value={eyebrow}
+                      onChange={(e) => setEyebrow(e.target.value)}
+                      placeholder="Ex.: Diagnóstico gratuito"
+                    />
+                  </FieldRow>
+                  <label className="mt-1 flex items-center gap-2 text-sm text-[var(--text2)]">
+                    <input
+                      type="checkbox"
+                      checked={published}
+                      onChange={(e) => setPublished(e.target.checked)}
+                    />
+                    Publicado
+                  </label>
+                </div>
 
-              {(s.type === "text" ||
-                s.type === "name" ||
-                s.type === "email" ||
-                s.type === "tel" ||
-                s.type === "link") && (
-                <input
-                  className={`${inputCls} mt-2`}
-                  value={s.placeholder ?? ""}
-                  onChange={(e) => updateStep(s._key, { placeholder: e.target.value })}
-                  placeholder="Placeholder do campo (opcional)"
-                />
-              )}
-
-              {s.type === "welcome" && (
-                <input
-                  className={`${inputCls} mt-2`}
-                  value={s.buttonLabel ?? ""}
-                  onChange={(e) => updateStep(s._key, { buttonLabel: e.target.value })}
-                  placeholder="Texto do botão (ex.: Começar)"
-                />
-              )}
-
-              {(s.type === "single" || s.type === "multi") && (
-                <div className="mt-3">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="lbl">Opções e pesos</span>
-                  </div>
+                <div>
+                  <ListLabel>Faixas de lead (% do score máx.)</ListLabel>
                   <div className="grid gap-2">
-                    {(s.options ?? []).map((o, oi) => (
-                      <div
-                        key={oi}
-                        className="rounded-md border border-[var(--border)] bg-[var(--card)] p-2"
-                      >
-                        <div className="flex items-center gap-2">
-                          <input
-                            className={`${inputCls} flex-1`}
-                            value={o.label}
-                            onChange={(e) => updateOption(s._key, oi, { label: e.target.value })}
-                            placeholder={`Opção ${oi + 1}`}
-                          />
-                          <div className="flex items-center gap-1">
-                            <span className="mono text-[0.65rem] text-[var(--text3)]">peso</span>
-                            <input
-                              type="number"
-                              className="w-16 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-2 text-sm"
-                              value={o.weight ?? 0}
-                              onChange={(e) =>
-                                updateOption(s._key, oi, { weight: Number(e.target.value) })
-                              }
-                            />
-                          </div>
-                          <IconBtn label="Remover opção" onClick={() => removeOption(s._key, oi)} danger>✕</IconBtn>
-                        </div>
-                        {s.type === "single" && (
-                          <div className="mt-2 flex items-center gap-2 pl-1">
-                            <span className="mono text-[0.62rem] text-[var(--text3)]">
-                              ao escolher →
-                            </span>
-                            <select
-                              value={o.next ?? ""}
-                              onChange={(e) =>
-                                updateOption(s._key, oi, {
-                                  next: e.target.value || undefined,
-                                })
-                              }
-                              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-[0.8rem]"
-                            >
-                              <option value="">Seguir na ordem</option>
-                              {steps
-                                .filter((t) => t._key !== s._key)
-                                .map((t) => (
-                                  <option key={t._key} value={t.id}>
-                                    Ir para: {t.title || t.id}
-                                  </option>
-                                ))}
-                              <option value={END_STEP}>Encerrar (tela final)</option>
-                            </select>
-                          </div>
-                        )}
+                    {tiers.map((t) => (
+                      <div key={t.id} className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full" style={{ background: t.color }} />
+                        <input
+                          className={`${inputCls} flex-1`}
+                          value={t.name}
+                          onChange={(e) => updateTier(t.id, { name: e.target.value })}
+                        />
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          className="w-14 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
+                          value={t.minPct}
+                          onChange={(e) => updateTier(t.id, { minPct: Number(e.target.value) })}
+                        />
+                        <span className="mono text-[0.65rem] text-[var(--text3)]">%</span>
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div className="rounded-lg border p-3" style={{ borderColor: "rgba(255,69,69,0.4)" }}>
+                  <div className="text-sm font-bold text-[var(--red)]">Zona de perigo</div>
                   <button
-                    onClick={() => addOption(s._key)}
-                    className="mt-2 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+                    onClick={deleteForm}
+                    className="mt-2 rounded-full border border-[var(--red)] px-3 py-1.5 text-sm font-medium text-[var(--red)] transition hover:bg-[var(--red)] hover:text-white"
                   >
-                    + Adicionar opção
+                    Excluir formulário
                   </button>
                 </div>
-              )}
+              </div>
+            )}
+          </aside>
 
-              {s.type !== "welcome" && (
-                <label className="mt-3 flex items-center gap-2 text-sm text-[var(--text2)]">
-                  <input
-                    type="checkbox"
-                    checked={!!s.required}
-                    onChange={(e) => updateStep(s._key, { required: e.target.checked })}
-                  />
-                  Obrigatório
-                </label>
-              )}
+          {/* Coluna central — preview */}
+          <div className="flex flex-1 flex-col overflow-hidden bg-[var(--bg)]">
+            <div className="flex items-center justify-center gap-1 border-b border-[var(--border)] py-2">
+              {(["desktop", "tablet", "mobile"] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDevice(d)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
+                    device === d
+                      ? "bg-[var(--text)] text-white"
+                      : "text-[var(--text2)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  {d === "desktop" ? "Desktop" : d === "tablet" ? "Tablet" : "Mobile"}
+                </button>
+              ))}
             </div>
-          ))}
+            <div className="flex flex-1 items-start justify-center overflow-y-auto p-6">
+              <div
+                className="w-full overflow-hidden rounded-2xl border-2 border-[var(--dark)] bg-[var(--card)] shadow-xl"
+                style={{
+                  maxWidth:
+                    device === "mobile" ? 390 : device === "tablet" ? 720 : 900,
+                }}
+              >
+                <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-2.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+                </div>
+                <StepPreview
+                  eyebrow={eyebrow}
+                  step={selectedStep}
+                  endingTier={selectedEndingTier}
+                  endScreen={
+                    selectedEndingTier ? endScreenFor(selectedEndingTier) : null
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Coluna direita — configurações da seleção */}
+          <aside className="w-[320px] shrink-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--card)] p-4">
+            {selectedStep && (
+              <StepSettings
+                step={selectedStep}
+                steps={steps}
+                maxScore={maxScore}
+                updateStep={updateStep}
+                changeType={changeType}
+                moveStep={moveStep}
+                removeStep={removeStep}
+                updateOption={updateOption}
+                addOption={addOption}
+                removeOption={removeOption}
+              />
+            )}
+            {selectedEndingTier && (
+              <EndingSettings
+                tier={tiers.find((t) => t.id === selectedEndingTier)!}
+                es={endScreenFor(selectedEndingTier)}
+                update={(patch) => updateEndScreen(selectedEndingTier, patch)}
+              />
+            )}
+            {!selectedStep && !selectedEndingTier && (
+              <div className="mt-10 text-center text-sm text-[var(--text2)]">
+                Selecione uma pergunta ou tela final à esquerda para editar.
+              </div>
+            )}
+          </aside>
         </div>
-        <button
-          onClick={addStep}
-          className="mt-3 w-full rounded-xl border border-dashed border-[var(--border)] py-3 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-        >
-          + Adicionar pergunta
-        </button>
-      </Section>
       )}
 
-      {/* ===================== ABA OPÇÕES (continuação) ===================== */}
-      {tab === "opcoes" && (
-        <>
-      <Section title="Faixas de lead (por % do score máximo)">
-        <div className="grid gap-2">
-          {tiers.map((t) => (
-            <div key={t.id} className="flex items-center gap-3">
-              <span
-                className="h-3 w-3 rounded-full"
-                style={{ background: t.color }}
-              />
-              <input
-                className={`${inputCls} flex-1`}
-                value={t.name}
-                onChange={(e) => updateTier(t.id, { name: e.target.value })}
-              />
-              <div className="flex items-center gap-1">
-                <span className="mono text-[0.65rem] text-[var(--text3)]">a partir de</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  className="w-16 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
-                  value={t.minPct}
-                  onChange={(e) => updateTier(t.id, { minPct: Number(e.target.value) })}
-                />
-                <span className="mono text-[0.65rem] text-[var(--text3)]">%</span>
-              </div>
-            </div>
-          ))}
+      {topTab === "integrate" && (
+        <div className="flex-1 overflow-y-auto">
+          <IntegrateTab
+            pixel={pixel}
+            updatePixel={updatePixel}
+            webhookUrl={webhookUrl}
+            setWebhookUrl={setWebhookUrl}
+          />
         </div>
-      </Section>
+      )}
 
-      {/* Telas finais */}
-      <Section title="Telas finais (uma por faixa)">
-        <div className="grid gap-3">
-          {tiers.map((t) => {
-            const es = endScreenFor(t.id);
-            return (
-              <div key={t.id} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} />
-                  <span className="font-bold text-[var(--text)]">{t.name}</span>
-                </div>
-                <input
-                  className={inputCls}
-                  value={es.title}
-                  onChange={(e) => updateEndScreen(t.id, { title: e.target.value })}
-                  placeholder="Título (use {nome} para personalizar)"
-                />
-                <textarea
-                  className={`${inputCls} mt-2 min-h-[64px]`}
-                  value={es.message}
-                  onChange={(e) => updateEndScreen(t.id, { message: e.target.value })}
-                  placeholder="Mensagem"
-                />
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <input
-                    className={inputCls}
-                    value={es.ctaLabel ?? ""}
-                    onChange={(e) => updateEndScreen(t.id, { ctaLabel: e.target.value })}
-                    placeholder="Texto do botão (opcional)"
-                  />
-                  <input
-                    className={inputCls}
-                    value={es.ctaHref ?? ""}
-                    onChange={(e) => updateEndScreen(t.id, { ctaHref: e.target.value })}
-                    placeholder="Link do botão (https:// ou https://wa.me/...)"
-                  />
-                </div>
-                <label className="mt-2 flex items-center gap-2 text-sm text-[var(--text2)]">
-                  <input
-                    type="checkbox"
-                    checked={!!es.qualified}
-                    onChange={(e) => updateEndScreen(t.id, { qualified: e.target.checked })}
-                  />
-                  Marcar como lead qualificado
-                </label>
-              </div>
-            );
-          })}
+      {topTab === "share" && (
+        <div className="flex-1 overflow-y-auto">
+          <ShareTab slug={slug} published={published} />
         </div>
-      </Section>
-
-      {/* Rastreamento / Pixel */}
-      <Section title="Rastreamento / Pixel">
-        <p className="mb-3 text-[0.8rem] text-[var(--text2)]">
-          Preencha só o que for usar. Os campos “token” e “API secret” ficam no
-          servidor e habilitam o envio server-side (melhor recuperação de
-          conversões).
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <FieldRow label="Meta Pixel ID">
-            <input
-              className={inputCls}
-              value={pixel.metaPixelId ?? ""}
-              onChange={(e) => updatePixel({ metaPixelId: e.target.value })}
-              placeholder="Ex.: 123456789012345"
-            />
-          </FieldRow>
-          <FieldRow label="Meta CAPI — token de acesso">
-            <input
-              className={inputCls}
-              value={pixel.metaCapiToken ?? ""}
-              onChange={(e) => updatePixel({ metaCapiToken: e.target.value })}
-              placeholder="EAAB... (server-side)"
-            />
-          </FieldRow>
-          <FieldRow label="Meta — código de teste (opcional)">
-            <input
-              className={inputCls}
-              value={pixel.metaTestCode ?? ""}
-              onChange={(e) => updatePixel({ metaTestCode: e.target.value })}
-              placeholder="TEST12345"
-            />
-          </FieldRow>
-          <div />
-          <FieldRow label="GA4 — Measurement ID">
-            <input
-              className={inputCls}
-              value={pixel.ga4Id ?? ""}
-              onChange={(e) => updatePixel({ ga4Id: e.target.value })}
-              placeholder="G-XXXXXXX"
-            />
-          </FieldRow>
-          <FieldRow label="GA4 — API secret (server-side)">
-            <input
-              className={inputCls}
-              value={pixel.ga4ApiSecret ?? ""}
-              onChange={(e) => updatePixel({ ga4ApiSecret: e.target.value })}
-              placeholder="Measurement Protocol secret"
-            />
-          </FieldRow>
-        </div>
-      </Section>
-
-      {/* Zona de perigo */}
-      <section className="mb-8 rounded-xl border p-5" style={{ borderColor: "rgba(255,69,69,0.4)", background: "rgba(255,69,69,0.04)" }}>
-        <h2 className="text-sm font-bold text-[var(--red)]">Zona de perigo</h2>
-        <p className="mt-1 text-[0.8rem] text-[var(--text2)]">
-          Excluir o formulário remove também todas as respostas. Não pode ser
-          desfeito.
-        </p>
-        <button
-          onClick={deleteForm}
-          className="mt-3 rounded-full border border-[var(--red)] px-4 py-2 text-sm font-medium text-[var(--red)] transition hover:bg-[var(--red)] hover:text-white"
-        >
-          Excluir formulário
-        </button>
-      </section>
-        </>
       )}
     </div>
   );
 }
 
-function TabBtn({
+// =====================================================================
+// Preview central
+// =====================================================================
+function StepPreview({
+  eyebrow,
+  step,
+  endingTier,
+  endScreen,
+}: {
+  eyebrow: string;
+  step: (Field & { _key: string }) | null;
+  endingTier: string | null;
+  endScreen: EndScreen | null;
+}) {
+  if (endingTier && endScreen) {
+    return (
+      <div className="px-8 py-16 text-center">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)]">
+          <span className="text-2xl">✓</span>
+        </div>
+        <h1 className="mt-6 text-2xl font-black tracking-tight text-[var(--text)]">
+          {(endScreen.title || "").replace(/\{nome\}/g, "João")}
+        </h1>
+        <p className="mt-3 text-[var(--text2)]">
+          {(endScreen.message || "").replace(/\{nome\}/g, "João")}
+        </p>
+        {endScreen.ctaLabel && (
+          <span className="mt-6 inline-block rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-bold text-[var(--text)]">
+            {endScreen.ctaLabel}
+          </span>
+        )}
+      </div>
+    );
+  }
+  if (!step) {
+    return (
+      <div className="px-8 py-24 text-center text-[var(--text2)]">
+        Selecione um item para pré-visualizar.
+      </div>
+    );
+  }
+  const isInput =
+    step.type === "text" ||
+    step.type === "name" ||
+    step.type === "email" ||
+    step.type === "tel" ||
+    step.type === "link";
+  return (
+    <div className="px-8 py-14">
+      {step.type !== "welcome" && eyebrow && (
+        <div className="lbl mb-4">{eyebrow}</div>
+      )}
+      <h1 className="text-[1.7rem] font-black leading-tight tracking-tight text-[var(--text)]">
+        {step.title || "(sem título)"}
+      </h1>
+      {step.subtitle && (
+        <p className="mt-2 text-[var(--text2)]">{step.subtitle}</p>
+      )}
+      <div className="mt-6">
+        {isInput && (
+          <div className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[var(--text3)]">
+            {step.placeholder || "Resposta…"}
+          </div>
+        )}
+        {(step.type === "single" || step.type === "multi") && (
+          <div className="grid gap-2.5">
+            {(step.options ?? []).map((o, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded-lg border border-[var(--border)] px-4 py-3 text-[var(--text)]"
+              >
+                {o.label}
+                <span
+                  className={`h-4 w-4 border border-[var(--border)] ${
+                    step.type === "single" ? "rounded-full" : "rounded"
+                  }`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="mt-8">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-bold text-[var(--text)]">
+            {step.type === "welcome" ? step.buttonLabel || "Começar" : "Continuar"} →
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Painel direito — configurações da pergunta
+// =====================================================================
+function StepSettings({
+  step,
+  steps,
+  maxScore,
+  updateStep,
+  changeType,
+  moveStep,
+  removeStep,
+  updateOption,
+  addOption,
+  removeOption,
+}: {
+  step: Field & { _key: string };
+  steps: (Field & { _key: string })[];
+  maxScore: number;
+  updateStep: (k: string, p: Partial<Field & { _key: string }>) => void;
+  changeType: (k: string, t: FieldType) => void;
+  moveStep: (k: string, d: -1 | 1) => void;
+  removeStep: (k: string) => void;
+  updateOption: (k: string, i: number, p: Partial<Option>) => void;
+  addOption: (k: string) => void;
+  removeOption: (k: string, i: number) => void;
+}) {
+  const key = step._key;
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <span className="lbl">Pergunta</span>
+        <div className="flex items-center gap-1">
+          <IconBtn label="Subir" onClick={() => moveStep(key, -1)}>↑</IconBtn>
+          <IconBtn label="Descer" onClick={() => moveStep(key, 1)}>↓</IconBtn>
+          <IconBtn label="Remover" onClick={() => removeStep(key)} danger>✕</IconBtn>
+        </div>
+      </div>
+
+      <FieldRow label="Tipo">
+        <select
+          value={step.type}
+          onChange={(e) => changeType(key, e.target.value as FieldType)}
+          className={inputCls}
+        >
+          {(Object.keys(TYPE_LABELS) as FieldType[]).map((t) => (
+            <option key={t} value={t}>
+              {TYPE_LABELS[t]}
+            </option>
+          ))}
+        </select>
+      </FieldRow>
+
+      <FieldRow label="Título">
+        <input
+          className={inputCls}
+          value={step.title}
+          onChange={(e) => updateStep(key, { title: e.target.value })}
+        />
+      </FieldRow>
+      <FieldRow label="Subtítulo (opcional)">
+        <input
+          className={inputCls}
+          value={step.subtitle ?? ""}
+          onChange={(e) => updateStep(key, { subtitle: e.target.value })}
+        />
+      </FieldRow>
+
+      {(step.type === "text" ||
+        step.type === "name" ||
+        step.type === "email" ||
+        step.type === "tel" ||
+        step.type === "link") && (
+        <FieldRow label="Placeholder">
+          <input
+            className={inputCls}
+            value={step.placeholder ?? ""}
+            onChange={(e) => updateStep(key, { placeholder: e.target.value })}
+          />
+        </FieldRow>
+      )}
+
+      {step.type === "welcome" && (
+        <FieldRow label="Texto do botão">
+          <input
+            className={inputCls}
+            value={step.buttonLabel ?? ""}
+            onChange={(e) => updateStep(key, { buttonLabel: e.target.value })}
+          />
+        </FieldRow>
+      )}
+
+      {(step.type === "single" || step.type === "multi") && (
+        <div className="mt-2">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="lbl">Opções e pesos</span>
+            <span className="mono text-[0.62rem] text-[var(--text3)]">
+              máx: {maxScore}
+            </span>
+          </div>
+          <div className="grid gap-2">
+            {(step.options ?? []).map((o, oi) => (
+              <div
+                key={oi}
+                className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-2"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    className={`${inputCls} flex-1`}
+                    value={o.label}
+                    onChange={(e) => updateOption(key, oi, { label: e.target.value })}
+                  />
+                  <input
+                    type="number"
+                    className="w-14 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
+                    value={o.weight ?? 0}
+                    onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
+                  />
+                  <IconBtn label="Remover" onClick={() => removeOption(key, oi)} danger>✕</IconBtn>
+                </div>
+                {step.type === "single" && (
+                  <div className="mt-2 flex items-center gap-1">
+                    <span className="mono text-[0.6rem] text-[var(--text3)]">→</span>
+                    <select
+                      value={o.next ?? ""}
+                      onChange={(e) =>
+                        updateOption(key, oi, { next: e.target.value || undefined })
+                      }
+                      className="flex-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.78rem]"
+                    >
+                      <option value="">Seguir na ordem</option>
+                      {steps
+                        .filter((t) => t._key !== key)
+                        .map((t) => (
+                          <option key={t._key} value={t.id}>
+                            Ir para: {t.title || t.id}
+                          </option>
+                        ))}
+                      <option value={END_STEP}>Encerrar (tela final)</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => addOption(key)}
+            className="mt-2 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+          >
+            + Adicionar opção
+          </button>
+        </div>
+      )}
+
+      {step.type !== "welcome" && (
+        <label className="mt-4 flex items-center gap-2 text-sm text-[var(--text2)]">
+          <input
+            type="checkbox"
+            checked={!!step.required}
+            onChange={(e) => updateStep(key, { required: e.target.checked })}
+          />
+          Obrigatório
+        </label>
+      )}
+    </div>
+  );
+}
+
+function EndingSettings({
+  tier,
+  es,
+  update,
+}: {
+  tier: Tier;
+  es: EndScreen;
+  update: (p: Partial<EndScreen>) => void;
+}) {
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="h-3 w-3 rounded-full" style={{ background: tier.color }} />
+        <span className="font-bold text-[var(--text)]">Tela final · {tier.name}</span>
+      </div>
+      <FieldRow label="Título">
+        <input
+          className={inputCls}
+          value={es.title}
+          onChange={(e) => update({ title: e.target.value })}
+          placeholder="Use {nome} para personalizar"
+        />
+      </FieldRow>
+      <FieldRow label="Mensagem">
+        <textarea
+          className={`${inputCls} min-h-[80px]`}
+          value={es.message}
+          onChange={(e) => update({ message: e.target.value })}
+        />
+      </FieldRow>
+      <FieldRow label="Texto do botão (opcional)">
+        <input
+          className={inputCls}
+          value={es.ctaLabel ?? ""}
+          onChange={(e) => update({ ctaLabel: e.target.value })}
+        />
+      </FieldRow>
+      <FieldRow label="Link do botão">
+        <input
+          className={inputCls}
+          value={es.ctaHref ?? ""}
+          onChange={(e) => update({ ctaHref: e.target.value })}
+          placeholder="https:// ou https://wa.me/..."
+        />
+      </FieldRow>
+      <label className="mt-1 flex items-center gap-2 text-sm text-[var(--text2)]">
+        <input
+          type="checkbox"
+          checked={!!es.qualified}
+          onChange={(e) => update({ qualified: e.target.checked })}
+        />
+        Marcar como lead qualificado
+      </label>
+    </div>
+  );
+}
+
+// =====================================================================
+// Aba Integrações
+// =====================================================================
+function IntegrateTab({
+  pixel,
+  updatePixel,
+  webhookUrl,
+  setWebhookUrl,
+}: {
+  pixel: PixelConfig;
+  updatePixel: (p: Partial<PixelConfig>) => void;
+  webhookUrl: string;
+  setWebhookUrl: (v: string) => void;
+}) {
+  return (
+    <div className="mx-auto max-w-[760px] px-6 py-8">
+      <IntegrationCard
+        title="Meta / Facebook Pixel"
+        desc="Adicione o Pixel ID e o token da Conversions API para rastrear e otimizar suas campanhas."
+        color="#1877f2"
+        icon="M"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldRow label="Meta Pixel ID">
+            <input className={inputCls} value={pixel.metaPixelId ?? ""} onChange={(e) => updatePixel({ metaPixelId: e.target.value })} placeholder="123456789012345" />
+          </FieldRow>
+          <FieldRow label="CAPI — token">
+            <input className={inputCls} value={pixel.metaCapiToken ?? ""} onChange={(e) => updatePixel({ metaCapiToken: e.target.value })} placeholder="EAAB..." />
+          </FieldRow>
+          <FieldRow label="Código de teste (opcional)">
+            <input className={inputCls} value={pixel.metaTestCode ?? ""} onChange={(e) => updatePixel({ metaTestCode: e.target.value })} placeholder="TEST12345" />
+          </FieldRow>
+        </div>
+      </IntegrationCard>
+
+      <IntegrationCard
+        title="Google Analytics 4"
+        desc="Measurement ID e API secret para enviar conversões client-side e server-side."
+        color="#e37400"
+        icon="G"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldRow label="Measurement ID">
+            <input className={inputCls} value={pixel.ga4Id ?? ""} onChange={(e) => updatePixel({ ga4Id: e.target.value })} placeholder="G-XXXXXXX" />
+          </FieldRow>
+          <FieldRow label="API secret">
+            <input className={inputCls} value={pixel.ga4ApiSecret ?? ""} onChange={(e) => updatePixel({ ga4ApiSecret: e.target.value })} placeholder="Measurement Protocol secret" />
+          </FieldRow>
+        </div>
+      </IntegrationCard>
+
+      <IntegrationCard
+        title="Webhook (CRM)"
+        desc="Informe uma URL que recebe os dados a cada envio do formulário (CRM próprio, n8n, Make, etc.)."
+        color="#c53d5d"
+        icon="⇢"
+      >
+        <FieldRow label="URL do webhook">
+          <input className={inputCls} value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://seu-crm.com/webhook" />
+        </FieldRow>
+        <p className="mono mt-1 text-[0.68rem] text-[var(--text3)]">
+          Se vazio, usa a URL global (variável CRM_WEBHOOK_URL).
+        </p>
+      </IntegrationCard>
+    </div>
+  );
+}
+
+function IntegrationCard({
+  title,
+  desc,
+  color,
+  icon,
+  children,
+}: {
+  title: string;
+  desc: string;
+  color: string;
+  icon: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+      <div className="flex items-start gap-3">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white"
+          style={{ background: color }}
+        >
+          {icon}
+        </span>
+        <div>
+          <div className="font-bold uppercase tracking-wide text-[var(--text)]">
+            {title}
+          </div>
+          <p className="mt-0.5 text-sm text-[var(--text2)]">{desc}</p>
+        </div>
+      </div>
+      <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Aba Compartilhar
+// =====================================================================
+function ShareTab({ slug, published }: { slug: string; published: boolean }) {
+  const base =
+    typeof window !== "undefined" ? window.location.origin : "https://hibrid-forms.vercel.app";
+  const url = `${base}/f/${slug}`;
+  return (
+    <div className="mx-auto max-w-[760px] px-6 py-8">
+      {!published && (
+        <div className="mb-5 rounded-xl border border-[#f0d98a] bg-[#fdf7e3] px-4 py-3 text-sm text-[#8a6d1a]">
+          Este formulário ainda não está publicado. Ative “Publicado” em
+          Editor → Ajustes para ele ficar visível.
+        </div>
+      )}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+        <span className="lbl">Link do formulário</span>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            readOnly
+            value={url}
+            className={`${inputCls} bg-[var(--bg)]`}
+          />
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
+          >
+            Abrir ↗
+          </a>
+        </div>
+        <p className="mt-2 text-sm text-[var(--text2)]">
+          Use este link como página de destino do anúncio ou no botão da sua
+          landing page.
+        </p>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+        <span className="lbl">Hidden fields (rastreamento)</span>
+        <p className="mt-2 text-sm text-[var(--text2)]">
+          O formulário captura automaticamente da URL:{" "}
+          <span className="mono text-[0.8rem]">
+            utm_source, utm_medium, utm_campaign, utm_term, utm_content, gclid,
+            fbclid
+          </span>
+          . Exemplo:
+        </p>
+        <div className="mono mt-2 rounded-md bg-[var(--bg)] px-3 py-2 text-[0.78rem] text-[var(--text2)]">
+          {url}?utm_source=google&amp;gclid=ABC123
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// UI helpers
+// =====================================================================
+const inputCls =
+  "w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.35)]";
+
+function NavPill({
   active,
   onClick,
   children,
@@ -683,10 +1121,8 @@ function TabBtn({
   return (
     <button
       onClick={onClick}
-      className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-bold transition ${
-        active
-          ? "border-[var(--text)] text-[var(--text)]"
-          : "border-transparent text-[var(--text3)] hover:text-[var(--text)]"
+      className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+        active ? "bg-[var(--text)] text-white" : "text-[var(--text2)] hover:text-[var(--text)]"
       }`}
     >
       {children}
@@ -694,26 +1130,46 @@ function TabBtn({
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.35)]";
-
-function Section({
-  title,
-  right,
+function SideTab({
+  active,
+  onClick,
   children,
 }: {
-  title: string;
-  right?: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="lbl">{title}</h2>
-        {right}
-      </div>
+    <button
+      onClick={onClick}
+      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+        active ? "bg-[var(--card)] text-[var(--text)] shadow-sm" : "text-[var(--text2)]"
+      }`}
+    >
       {children}
-    </section>
+    </button>
+  );
+}
+
+function ListLabel({ children }: { children: React.ReactNode }) {
+  return <div className="lbl mb-2 block">{children}</div>;
+}
+
+function TypeTag({ type }: { type: FieldType }) {
+  const short: Record<FieldType, string> = {
+    welcome: "Início",
+    text: "Texto",
+    name: "Nome",
+    email: "E-mail",
+    tel: "Tel",
+    link: "Link",
+    single: "Única",
+    multi: "Múltipla",
+  };
+  return (
+    <span className="mono rounded bg-[var(--bg)] px-1.5 py-0.5 text-[0.55rem] uppercase text-[var(--text3)]">
+      {short[type]}
+    </span>
   );
 }
 
@@ -726,7 +1182,7 @@ function FieldRow({
 }) {
   return (
     <div className="mb-3">
-      <label className="mb-1 block text-[0.8rem] text-[var(--text2)]">{label}</label>
+      <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">{label}</label>
       {children}
     </div>
   );
@@ -735,23 +1191,20 @@ function FieldRow({
 function IconBtn({
   children,
   onClick,
-  disabled,
   danger,
   label,
 }: {
   children: React.ReactNode;
   onClick: () => void;
-  disabled?: boolean;
   danger?: boolean;
   label: string;
 }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
       aria-label={label}
       title={label}
-      className={`flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--card)] text-sm transition disabled:opacity-30 ${
+      className={`flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--card)] text-sm transition ${
         danger
           ? "text-[var(--text3)] hover:border-[var(--red)] hover:text-[var(--red)]"
           : "text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
