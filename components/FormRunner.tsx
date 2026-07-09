@@ -196,19 +196,16 @@ export function FormRunner({ form }: { form: FormConfig }) {
     setResolvedEnd(screen);
     const eventId = newEventId();
 
-    // Dispara eventos client-side (mesmo event_id do server p/ deduplicar)
-    const w = window as unknown as {
-      fbq?: (...a: unknown[]) => void;
-      gtag?: (...a: unknown[]) => void;
-    };
+    // Meta Pixel client-side (mesmo event_id do server p/ deduplicar via CAPI).
+    // NÃO disparamos gtag('generate_lead') aqui: o GA4 recebe esse evento pelo
+    // GTM (nosso push abaixo) e/ou pelo server-side (Measurement Protocol).
+    // Fazer os dois causaria conversão duplicada no Google Ads via GTM.
+    const w = window as unknown as { fbq?: (...a: unknown[]) => void };
     try {
       if (w.fbq) {
         w.fbq("track", "Lead", { value: score }, { eventID: eventId });
         if (qualified)
           w.fbq("trackCustom", "LeadQualificado", { value: score }, { eventID: eventId });
-      }
-      if (w.gtag) {
-        w.gtag("event", "generate_lead", { value: score, tier: tierId });
       }
     } catch {}
 
