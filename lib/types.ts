@@ -94,6 +94,10 @@ export interface PixelConfig {
   ga4ApiSecret?: string;
   /** Nome da ação de conversão no Google Ads (para exportação offline via gclid) */
   googleConversionName?: string;
+  /** ID numérico da ação de conversão no Google Ads (para envio via API) */
+  googleConversionActionId?: string;
+  /** Customer ID da conta do cliente no Google Ads (só dígitos) — envio via API */
+  googleCustomerId?: string;
 }
 
 export interface ThemeConfig {

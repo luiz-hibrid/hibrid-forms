@@ -1875,14 +1875,37 @@ function IntegrateTab({
         color="#34a853"
         icon="G"
       >
-        <FieldRow label="Nome da conversão">
-          <input
-            className={inputCls}
-            value={pixel.googleConversionName ?? ""}
-            onChange={(e) => updatePixel({ googleConversionName: e.target.value })}
-            placeholder="Ex.: Lead Qualificado - Hibrid"
-          />
-        </FieldRow>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FieldRow label="Nome da conversão (para o CSV)">
+            <input
+              className={inputCls}
+              value={pixel.googleConversionName ?? ""}
+              onChange={(e) => updatePixel({ googleConversionName: e.target.value })}
+              placeholder="Ex.: Lead Qualificado - Hibrid"
+            />
+          </FieldRow>
+          <FieldRow label="Customer ID do cliente (envio via API)">
+            <input
+              className={inputCls}
+              value={pixel.googleCustomerId ?? ""}
+              onChange={(e) => updatePixel({ googleCustomerId: e.target.value })}
+              placeholder="Conta do cliente na MCC (só dígitos)"
+            />
+          </FieldRow>
+          <FieldRow label="Conversion Action ID (envio via API)">
+            <input
+              className={inputCls}
+              value={pixel.googleConversionActionId ?? ""}
+              onChange={(e) => updatePixel({ googleConversionActionId: e.target.value })}
+              placeholder="Só o número da ação de conversão"
+            />
+          </FieldRow>
+        </div>
+        <p className="mono mt-2 text-[0.68rem] text-[var(--text3)]">
+          O envio automático via API dispara para leads qualificados que têm
+          gclid, quando as credenciais do Google Ads estão configuradas no
+          servidor.
+        </p>
       </IntegrationCard>
 
       <IntegrationCard

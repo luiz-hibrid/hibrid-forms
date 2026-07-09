@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendToCrm, isCrmConfigured } from "@/lib/crm";
 import { getFormBySlug } from "@/lib/forms-db";
 import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
+import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -123,6 +124,25 @@ export async function POST(request: Request) {
             eventId: pe.event_id,
           }),
         ]);
+      }
+    }
+
+    // Google Ads — conversão offline server-side (lead qualificado + gclid)
+    const gclid = (row.tracking as { gclid?: string } | null)?.gclid;
+    if (row.qualified && gclid && isGoogleAdsConfigured()) {
+      const result = await uploadQualifiedConversion({
+        gclid,
+        email: row.email,
+        phone: row.telefone,
+        value: row.score,
+        currency: "BRL",
+        orderId: pe.event_id ?? insertedId,
+        conversionActionId: fullForm?.pixel?.googleConversionActionId,
+        customerId: fullForm?.pixel?.googleCustomerId,
+        whenIso: body?.submitted_at,
+      });
+      if (!result.ok) {
+        console.error("[Hibrid Forms] Google Ads conversão:", result.error);
       }
     }
 
