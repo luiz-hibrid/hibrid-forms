@@ -116,10 +116,10 @@ export function ResultsView({
     <div className="w-full px-5 py-6 sm:px-8">
       {/* Sub-nav */}
       <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <SubTab active={tab === "summary"} onClick={() => setTab("summary")}>Resumo</SubTab>
-        <SubTab active={tab === "responses"} onClick={() => setTab("responses")}>Respostas</SubTab>
-        <SubTab active={tab === "map"} onClick={() => setTab("map")}>Mapa</SubTab>
-        <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")}>Kanban</SubTab>
+        <SubTab active={tab === "summary"} onClick={() => setTab("summary")} icon={<IcoSummary />}>Resumo</SubTab>
+        <SubTab active={tab === "responses"} onClick={() => setTab("responses")} icon={<IcoTable />}>Respostas</SubTab>
+        <SubTab active={tab === "map"} onClick={() => setTab("map")} icon={<IcoPin />}>Mapa</SubTab>
+        <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")} icon={<IcoColumns />}>Kanban</SubTab>
       </div>
 
       {tab === "summary" && (
@@ -783,7 +783,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 // ---------------------------------------------------------------- helpers UI
-function SubTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function SubTab({
+  active,
+  onClick,
+  icon,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
@@ -791,8 +801,43 @@ function SubTab({ active, onClick, children }: { active: boolean; onClick: () =>
         active ? "bg-[var(--text)] text-white" : "text-[var(--text2)] hover:text-[var(--text)]"
       }`}
     >
+      {icon}
       {children}
     </button>
+  );
+}
+
+function IcoSummary() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 6h12M8 12h12M8 18h12" />
+      <path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+    </svg>
+  );
+}
+function IcoTable() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18M9 4v16" />
+    </svg>
+  );
+}
+function IcoPin() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+function IcoColumns() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="5" height="16" rx="1" />
+      <rect x="9.5" y="4" width="5" height="16" rx="1" />
+      <rect x="16" y="4" width="5" height="16" rx="1" />
+    </svg>
   );
 }
 function RoundBtn({ children, onClick, label }: { children: React.ReactNode; onClick: () => void; label: string }) {
