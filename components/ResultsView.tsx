@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Field } from "@/lib/types";
 import { TierBadge } from "@/components/TierBadge";
 import { FieldTypeIcon, FIELD_META } from "@/components/FieldTypeIcon";
+import { BrazilGeoMap } from "@/components/BrazilGeoMap";
 
 interface Submission {
   id: string;
@@ -18,6 +19,9 @@ interface Submission {
   status: string;
   stage: string;
   labels: string[];
+  geo_uf: string | null;
+  geo_city: string | null;
+  geo_country: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -100,7 +104,9 @@ export function ResultsView({
   stats: { views: number; starts: number };
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"summary" | "responses" | "kanban">("summary");
+  const [tab, setTab] = useState<
+    "summary" | "responses" | "map" | "kanban"
+  >("summary");
 
   const responses = submissions.length;
   const completion = stats.views > 0 ? Math.round((responses / stats.views) * 100) : 0;
@@ -111,6 +117,7 @@ export function ResultsView({
       <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <SubTab active={tab === "summary"} onClick={() => setTab("summary")}>Resumo</SubTab>
         <SubTab active={tab === "responses"} onClick={() => setTab("responses")}>Respostas</SubTab>
+        <SubTab active={tab === "map"} onClick={() => setTab("map")}>Mapa</SubTab>
         <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")}>Kanban</SubTab>
       </div>
 
@@ -129,6 +136,7 @@ export function ResultsView({
           <Responses steps={steps} submissions={submissions} formSlug={formSlug} onChange={() => router.refresh()} />
         </div>
       )}
+      {tab === "map" && <BrazilGeoMap submissions={submissions} />}
       {tab === "kanban" && (
         <Kanban
           formId={formId}

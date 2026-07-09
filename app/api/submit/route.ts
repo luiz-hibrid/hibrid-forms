@@ -16,6 +16,9 @@ export async function POST(request: Request) {
     const body = await request.json();
     const answers: Record<string, unknown> = body?.answers ?? {};
 
+    // Geolocalização automática da Vercel (baseada no IP)
+    const h = request.headers;
+    const geoCity = h.get("x-vercel-ip-city");
     const row = {
       form_slug: body?.form?.slug ?? "desconhecido",
       form_name: body?.form?.name ?? null,
@@ -28,6 +31,11 @@ export async function POST(request: Request) {
       tier: body?.tier ?? null,
       qualified: !!body?.qualified,
       tracking: body?.tracking ?? {},
+      geo_country: h.get("x-vercel-ip-country") || null,
+      geo_uf: h.get("x-vercel-ip-country-region") || null,
+      geo_city: geoCity ? decodeURIComponent(geoCity) : null,
+      geo_lat: h.get("x-vercel-ip-latitude") || null,
+      geo_lng: h.get("x-vercel-ip-longitude") || null,
     };
 
     const supabase = getSupabaseAdmin();
