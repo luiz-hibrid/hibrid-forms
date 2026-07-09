@@ -1118,44 +1118,68 @@ function StepSettings({
             {(step.options ?? []).map((o, oi) => (
               <div
                 key={oi}
-                className="rounded-md border border-[var(--border)] bg-[var(--bg)] p-2"
+                className="group rounded-lg border border-[var(--border)] bg-[var(--bg)] p-2.5"
               >
+                {/* Nome da opção */}
                 <div className="flex items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--card)] text-[0.6rem] font-bold text-[var(--text3)]">
+                    {String.fromCharCode(65 + oi)}
+                  </span>
                   <input
-                    className={`${inputCls} min-w-0 flex-1`}
+                    className="min-w-0 flex-1 border-0 bg-transparent px-0 text-sm font-medium text-[var(--text)] outline-none"
                     value={o.label}
+                    placeholder={`Opção ${oi + 1}`}
                     onChange={(e) => updateOption(key, oi, { label: e.target.value })}
                   />
-                  <input
-                    type="number"
-                    className="w-12 shrink-0 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
-                    value={o.weight ?? 0}
-                    onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
-                  />
-                  <IconBtn label="Remover" onClick={() => removeOption(key, oi)} danger>✕</IconBtn>
+                  <button
+                    onClick={() => removeOption(key, oi)}
+                    aria-label="Remover"
+                    className="shrink-0 text-[var(--text3)] opacity-0 transition hover:text-[var(--red)] group-hover:opacity-100"
+                  >
+                    ✕
+                  </button>
                 </div>
-                {step.type === "single" && (
-                  <div className="mt-2 flex items-center gap-1">
-                    <span className="mono text-[0.6rem] text-[var(--text3)]">→</span>
-                    <select
-                      value={o.next ?? ""}
-                      onChange={(e) =>
-                        updateOption(key, oi, { next: e.target.value || undefined })
-                      }
-                      className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.78rem]"
-                    >
-                      <option value="">Seguir na ordem</option>
-                      {steps
-                        .filter((t) => t._key !== key)
-                        .map((t) => (
-                          <option key={t._key} value={t.id}>
-                            Ir para: {t.title || t.id}
-                          </option>
-                        ))}
-                      <option value={END_STEP}>Encerrar (tela final)</option>
-                    </select>
-                  </div>
-                )}
+
+                {/* Fluxo + pontuação */}
+                <div className="mt-2 flex items-center gap-2">
+                  {step.type === "single" ? (
+                    <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
+                      <span className="mono shrink-0 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]">
+                        fluxo
+                      </span>
+                      <select
+                        value={o.next ?? ""}
+                        onChange={(e) =>
+                          updateOption(key, oi, { next: e.target.value || undefined })
+                        }
+                        className="min-w-0 flex-1 bg-transparent text-[0.78rem] text-[var(--text)] outline-none"
+                      >
+                        <option value="">Seguir na ordem</option>
+                        {steps
+                          .filter((t) => t._key !== key)
+                          .map((t) => (
+                            <option key={t._key} value={t.id}>
+                              Ir para: {t.title || t.id}
+                            </option>
+                          ))}
+                        <option value={END_STEP}>Encerrar (tela final)</option>
+                      </select>
+                    </label>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  <label className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5">
+                    <span className="mono text-[0.55rem] uppercase tracking-wide text-[var(--text3)]">
+                      peso
+                    </span>
+                    <input
+                      type="number"
+                      className="w-8 bg-transparent text-right text-sm text-[var(--text)] outline-none"
+                      value={o.weight ?? 0}
+                      onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
+                    />
+                  </label>
+                </div>
               </div>
             ))}
           </div>
