@@ -374,7 +374,7 @@ function StepBody({
         {field.title}
       </h1>
       {field.subtitle && (
-        <p className="mt-3 text-[0.95rem] text-[var(--text2)] leading-relaxed">
+        <p className="mt-3 whitespace-pre-line text-[0.95rem] text-[var(--text2)] leading-relaxed">
           {field.subtitle}
         </p>
       )}
@@ -565,7 +565,7 @@ function EndScreen({
         <h1 className="mt-7 text-[1.7rem] sm:text-[2rem] font-black leading-tight tracking-tight text-[var(--text)]">
           {title}
         </h1>
-        <p className="mt-4 text-[1rem] text-[var(--text2)] leading-relaxed">
+        <p className="mt-4 whitespace-pre-line text-[1rem] text-[var(--text2)] leading-relaxed">
           {message}
         </p>
 

@@ -19,6 +19,7 @@ interface Submission {
   status: string;
   stage: string;
   labels: string[];
+  tracking: Record<string, string> | null;
   geo_uf: string | null;
   geo_city: string | null;
   geo_country: string | null;
@@ -250,16 +251,35 @@ function Responses({
   onChange: () => void;
 }) {
   const [q, setQ] = useState("");
+  const [campaign, setCampaign] = useState("");
+
+  const campaigns = useMemo(() => {
+    const set = new Set<string>();
+    submissions.forEach((s) => {
+      const c = s.tracking?.utm_campaign;
+      if (c) set.add(c);
+    });
+    return Array.from(set).sort();
+  }, [submissions]);
+
   const rows = useMemo(() => {
-    if (!q) return submissions;
     const t = q.toLowerCase();
     return submissions.filter((s) => {
-      const blob = [s.nome, s.email, s.telefone, JSON.stringify(s.answers)]
+      if (campaign && s.tracking?.utm_campaign !== campaign) return false;
+      if (!t) return true;
+      const blob = [
+        s.nome,
+        s.email,
+        s.telefone,
+        s.tracking?.utm_source,
+        s.tracking?.utm_campaign,
+        JSON.stringify(s.answers),
+      ]
         .join(" ")
         .toLowerCase();
       return blob.includes(t);
     });
-  }, [q, submissions]);
+  }, [q, campaign, submissions]);
 
   async function remove(id: string) {
     if (!confirm("Excluir esta resposta?")) return;
@@ -271,12 +291,28 @@ function Responses({
   return (
     <div className="border-y border-[var(--border)] bg-[var(--card)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-8">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar nas respostas…"
-          className="w-full max-w-[320px] rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm outline-none focus:border-[var(--acc2)]"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar nas respostas…"
+            className="w-full max-w-[280px] rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm outline-none focus:border-[var(--acc2)]"
+          />
+          {campaigns.length > 0 && (
+            <select
+              value={campaign}
+              onChange={(e) => setCampaign(e.target.value)}
+              className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text2)]"
+            >
+              <option value="">Todas as campanhas</option>
+              {campaigns.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span className="mono text-[0.72rem] text-[var(--text3)]">{rows.length} respostas</span>
           <a
@@ -284,6 +320,13 @@ function Responses({
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
           >
             Baixar CSV
+          </a>
+          <a
+            href={`/api/admin/export-google?form=${formSlug}`}
+            title="CSV de conversões offline (leads qualificados com gclid) para upload no Google Ads"
+            className="rounded-full bg-[var(--text)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
+          >
+            Conversões Google
           </a>
         </div>
       </div>
@@ -301,6 +344,12 @@ function Responses({
               <Th>
                 <HdrIcon d="M20 6L9 17l-5-5" /> Status
               </Th>
+              <Th>
+                <HdrIcon d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20" /> Origem
+              </Th>
+              <Th>
+                <HdrIcon d="M4 4h16v4H4zM4 12h10v8H4z" /> Campanha
+              </Th>
               {steps.map((s) => (
                 <Th key={s.id}>
                   <span className="inline-flex items-center gap-1.5">
@@ -317,7 +366,7 @@ function Responses({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={steps.length + 6} className="px-4 py-12 text-center text-[var(--text2)]">
+                <td colSpan={steps.length + 8} className="px-4 py-12 text-center text-[var(--text2)]">
                   Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
                 </td>
               </tr>
@@ -334,6 +383,12 @@ function Responses({
                   <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
                     {r.status === "complete" ? "Completa" : "Parcial"}
                   </span>
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 text-[var(--text2)]">
+                  {r.tracking?.utm_source || (r.tracking?.gclid ? "google/ads" : "—")}
+                </td>
+                <td className="max-w-[180px] truncate px-4 py-3 text-[var(--text2)]" title={r.tracking?.utm_campaign || ""}>
+                  {r.tracking?.utm_campaign || "—"}
                 </td>
                 {steps.map((s) => (
                   <td key={s.id} className="max-w-[200px] truncate px-4 py-3 text-[var(--text2)]" title={answerText(s, r.answers?.[s.id])}>

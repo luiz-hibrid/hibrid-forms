@@ -955,7 +955,7 @@ function StepPreview({
         >
           {(endScreen.title || "").replace(/\{nome\}/g, "João")}
         </h1>
-        <p className="mt-3" style={{ color: "var(--form-title)", opacity: 0.7 }}>
+        <p className="mt-3 whitespace-pre-line" style={{ color: "var(--form-title)", opacity: 0.7 }}>
           {(endScreen.message || "").replace(/\{nome\}/g, "João")}
         </p>
         {endScreen.ctaLabel && (
@@ -995,7 +995,7 @@ function StepPreview({
         {step.title || "(sem título)"}
       </h1>
       {step.subtitle && (
-        <p className="mt-2" style={{ color: "var(--form-title)", opacity: 0.65 }}>
+        <p className="mt-2 whitespace-pre-line" style={{ color: "var(--form-title)", opacity: 0.65 }}>
           {step.subtitle}
         </p>
       )}
@@ -1831,6 +1831,22 @@ function IntegrateTab({
             <input className={inputCls} value={pixel.ga4ApiSecret ?? ""} onChange={(e) => updatePixel({ ga4ApiSecret: e.target.value })} placeholder="Measurement Protocol secret" />
           </FieldRow>
         </div>
+      </IntegrationCard>
+
+      <IntegrationCard
+        title="Google Ads — conversões offline"
+        desc="Nome da ação de conversão no Google Ads. Usado na exportação de leads qualificados (via gclid) para você importar em Ferramentas → Conversões → Uploads."
+        color="#34a853"
+        icon="G"
+      >
+        <FieldRow label="Nome da conversão">
+          <input
+            className={inputCls}
+            value={pixel.googleConversionName ?? ""}
+            onChange={(e) => updatePixel({ googleConversionName: e.target.value })}
+            placeholder="Ex.: Lead Qualificado - Hibrid"
+          />
+        </FieldRow>
       </IntegrationCard>
 
       <IntegrationCard

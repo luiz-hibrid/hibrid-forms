@@ -90,6 +90,8 @@ export interface PixelConfig {
   ga4Id?: string;
   /** GA4 Measurement Protocol — API secret (server-side) */
   ga4ApiSecret?: string;
+  /** Nome da ação de conversão no Google Ads (para exportação offline via gclid) */
+  googleConversionName?: string;
 }
 
 export interface ThemeConfig {
