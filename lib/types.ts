@@ -16,7 +16,16 @@ export interface Option {
   value: string;
   /** Peso de lead scoring (as "chamas" do fluxo). Padrão 0. */
   weight?: number;
+  /**
+   * Destino ao escolher esta opção (fluxo condicional):
+   * - undefined  → segue na ordem
+   * - "__end__"  → encerra e vai para a tela final
+   * - <id>       → pula para a etapa com esse id
+   */
+  next?: string;
 }
+
+export const END_STEP = "__end__";
 
 export interface Field {
   id: string;

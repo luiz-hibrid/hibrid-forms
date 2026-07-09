@@ -10,6 +10,7 @@ import type {
   EndScreen,
   PixelConfig,
 } from "@/lib/types";
+import { END_STEP } from "@/lib/types";
 import type { FormRow } from "@/lib/forms-db";
 
 // slugify local (evita importar módulo de servidor no client)
@@ -214,7 +215,10 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           while (seen[v]) v = `${v}_${i + 1}`;
           seen[v] = true;
           const weight = Number(o.weight) || 0;
-          return weight ? { label: o.label, value: v, weight } : { label: o.label, value: v };
+          const opt: Option = { label: o.label, value: v };
+          if (weight) opt.weight = weight;
+          if (o.next) opt.next = o.next;
+          return opt;
         });
       }
       return base;
@@ -383,25 +387,56 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                   </div>
                   <div className="grid gap-2">
                     {(s.options ?? []).map((o, oi) => (
-                      <div key={oi} className="flex items-center gap-2">
-                        <input
-                          className={`${inputCls} flex-1`}
-                          value={o.label}
-                          onChange={(e) => updateOption(s._key, oi, { label: e.target.value })}
-                          placeholder={`Opção ${oi + 1}`}
-                        />
-                        <div className="flex items-center gap-1">
-                          <span className="mono text-[0.65rem] text-[var(--text3)]">peso</span>
+                      <div
+                        key={oi}
+                        className="rounded-md border border-[var(--border)] bg-[var(--card)] p-2"
+                      >
+                        <div className="flex items-center gap-2">
                           <input
-                            type="number"
-                            className="w-16 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
-                            value={o.weight ?? 0}
-                            onChange={(e) =>
-                              updateOption(s._key, oi, { weight: Number(e.target.value) })
-                            }
+                            className={`${inputCls} flex-1`}
+                            value={o.label}
+                            onChange={(e) => updateOption(s._key, oi, { label: e.target.value })}
+                            placeholder={`Opção ${oi + 1}`}
                           />
+                          <div className="flex items-center gap-1">
+                            <span className="mono text-[0.65rem] text-[var(--text3)]">peso</span>
+                            <input
+                              type="number"
+                              className="w-16 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-2 text-sm"
+                              value={o.weight ?? 0}
+                              onChange={(e) =>
+                                updateOption(s._key, oi, { weight: Number(e.target.value) })
+                              }
+                            />
+                          </div>
+                          <IconBtn label="Remover opção" onClick={() => removeOption(s._key, oi)} danger>✕</IconBtn>
                         </div>
-                        <IconBtn label="Remover opção" onClick={() => removeOption(s._key, oi)} danger>✕</IconBtn>
+                        {s.type === "single" && (
+                          <div className="mt-2 flex items-center gap-2 pl-1">
+                            <span className="mono text-[0.62rem] text-[var(--text3)]">
+                              ao escolher →
+                            </span>
+                            <select
+                              value={o.next ?? ""}
+                              onChange={(e) =>
+                                updateOption(s._key, oi, {
+                                  next: e.target.value || undefined,
+                                })
+                              }
+                              className="flex-1 rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1.5 text-[0.8rem]"
+                            >
+                              <option value="">Seguir na ordem</option>
+                              {steps
+                                .filter((t) => t._key !== s._key)
+                                .map((t) => (
+                                  <option key={t._key} value={t.id}>
+                                    Ir para: {t.title || t.id}
+                                  </option>
+                                ))}
+                              <option value={END_STEP}>Encerrar (tela final)</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Field, FormConfig } from "@/lib/types";
+import { END_STEP } from "@/lib/types";
 import { computeScore, resolveTier } from "@/lib/scoring";
 
 type Answers = Record<string, string | string[]>;
@@ -43,7 +44,9 @@ function newEventId(): string {
 }
 
 export function FormRunner({ form }: { form: FormConfig }) {
-  const [index, setIndex] = useState(0);
+  // Histórico de índices visitados (suporta fluxo condicional e "Voltar")
+  const [history, setHistory] = useState<number[]>([0]);
+  const index = history[history.length - 1];
   const [answers, setAnswers] = useState<Answers>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -54,6 +57,22 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const total = form.steps.length;
   const step = form.steps[index];
   const progress = Math.round(((index + (done ? 1 : 0)) / total) * 100);
+
+  // Resolve o índice de destino a partir de uma opção (fluxo condicional)
+  function nextIndexFromOption(opt?: { next?: string }): number | "end" {
+    if (!opt?.next) return index + 1;
+    if (opt.next === END_STEP) return "end";
+    const i = form.steps.findIndex((s) => s.id === opt.next);
+    return i >= 0 ? i : index + 1;
+  }
+
+  function goTo(target: number | "end", finalAnswers?: Answers) {
+    if (target === "end" || target >= total) {
+      finish(finalAnswers);
+      return;
+    }
+    setHistory((prev) => [...prev, target]);
+  }
 
   // Captura parâmetros de tracking da URL (utm, gclid, fbclid)
   useEffect(() => {
@@ -108,15 +127,11 @@ export function FormRunner({ form }: { form: FormConfig }) {
       setError(err);
       return;
     }
-    if (index < total - 1) {
-      setIndex((i) => i + 1);
-    } else {
-      finish();
-    }
+    goTo(index + 1);
   }
 
   function goBack() {
-    if (index > 0) setIndex((i) => i - 1);
+    if (history.length > 1) setHistory((prev) => prev.slice(0, -1));
   }
 
   async function finish(finalAnswers: Answers = answers) {
@@ -173,13 +188,14 @@ export function FormRunner({ form }: { form: FormConfig }) {
     setDone(true);
   }
 
-  // Escolha única com auto-avanço
+  // Escolha única com auto-avanço + roteamento condicional
   function selectSingle(field: Field, value: string) {
     const next = { ...answers, [field.id]: value };
+    const opt = field.options?.find((o) => o.value === value);
+    const target = nextIndexFromOption(opt);
     setAnswer(field.id, value);
     setTimeout(() => {
-      if (index < total - 1) setIndex((i) => i + 1);
-      else finish(next); // usa as respostas já com a última seleção
+      goTo(target, next); // usa as respostas já com a última seleção
     }, 260);
   }
 
