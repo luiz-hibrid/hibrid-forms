@@ -1815,6 +1815,13 @@ function IntegrateTab({
             <input className={inputCls} value={pixel.metaTestCode ?? ""} onChange={(e) => updatePixel({ metaTestCode: e.target.value })} placeholder="TEST12345" />
           </FieldRow>
         </div>
+        <EventsNote
+          items={[
+            ["PageView", "ao abrir o formulário"],
+            ["Lead", "ao concluir"],
+            ["LeadQualificado", "quando o lead é qualificado"],
+          ]}
+        />
       </IntegrationCard>
 
       <IntegrationCard
@@ -1831,6 +1838,12 @@ function IntegrateTab({
             <input className={inputCls} value={pixel.ga4ApiSecret ?? ""} onChange={(e) => updatePixel({ ga4ApiSecret: e.target.value })} placeholder="Measurement Protocol secret" />
           </FieldRow>
         </div>
+        <EventsNote
+          items={[
+            ["page_view", "ao abrir o formulário"],
+            ["generate_lead", "ao concluir"],
+          ]}
+        />
       </IntegrationCard>
 
       <IntegrationCard
@@ -1862,6 +1875,26 @@ function IntegrateTab({
           Se vazio, usa a URL global (variável CRM_WEBHOOK_URL).
         </p>
       </IntegrationCard>
+    </div>
+  );
+}
+
+function EventsNote({ items }: { items: [string, string][] }) {
+  return (
+    <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
+      <div className="mono mb-1.5 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]">
+        Eventos disparados
+      </div>
+      <ul className="space-y-1 text-[0.78rem] text-[var(--text2)]">
+        {items.map(([ev, when]) => (
+          <li key={ev} className="flex items-center gap-2">
+            <span className="mono rounded bg-[var(--card)] px-1.5 py-0.5 text-[0.68rem] font-bold text-[var(--text)]">
+              {ev}
+            </span>
+            <span>{when}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
