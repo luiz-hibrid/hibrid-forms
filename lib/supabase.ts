@@ -12,6 +12,11 @@ export function getSupabaseAdmin(): SupabaseClient | null {
   if (!url || !key) return null;
   cached = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // Evita o Data Cache do Next servir dados antigos (ex.: tema do formulário).
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
   return cached;
 }

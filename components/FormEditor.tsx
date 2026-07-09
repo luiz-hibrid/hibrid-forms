@@ -710,36 +710,58 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                 ))}
               </div>
             </div>
-            <div className="flex flex-1 items-start justify-center overflow-y-auto p-6">
+            <div className="flex flex-1 items-stretch justify-center overflow-y-auto p-6">
               <div
-                className="w-full overflow-hidden rounded-2xl border-2 border-[var(--dark)] bg-[var(--card)] shadow-xl"
+                className="flex w-full flex-col overflow-hidden rounded-2xl border-2 border-[var(--dark)] bg-[var(--card)] shadow-xl"
                 style={{
                   maxWidth:
-                    device === "mobile" ? 390 : device === "tablet" ? 720 : 900,
+                    device === "mobile" ? 390 : device === "tablet" ? 720 : 1100,
                 }}
               >
-                <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-2.5">
+                <div className="flex shrink-0 items-center gap-1.5 border-b border-[var(--border)] px-4 py-2.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                 </div>
                 <div
+                  className="flex flex-1 items-center justify-center"
                   style={
                     {
                       ...themeVars(theme),
                       background: "var(--form-bg)",
                       fontFamily: "var(--form-font)",
+                      minHeight:
+                        device === "mobile"
+                          ? 620
+                          : device === "tablet"
+                          ? 620
+                          : 540,
+                      padding: device === "mobile" ? "28px" : "48px",
                     } as React.CSSProperties
                   }
                 >
-                  <StepPreview
-                    eyebrow={eyebrow}
-                    step={selectedStep}
-                    endingTier={selectedEndingTier}
-                    endScreen={
-                      selectedEndingTier ? endScreenFor(selectedEndingTier) : null
-                    }
-                  />
+                  <div
+                    style={{
+                      width: "100%",
+                      maxWidth:
+                        device === "mobile"
+                          ? 330
+                          : device === "tablet"
+                          ? 520
+                          : 640,
+                    }}
+                  >
+                    <StepPreview
+                      eyebrow={eyebrow}
+                      step={selectedStep}
+                      endingTier={selectedEndingTier}
+                      endScreen={
+                        selectedEndingTier
+                          ? endScreenFor(selectedEndingTier)
+                          : null
+                      }
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -819,7 +841,7 @@ function StepPreview({
 
   if (endingTier && endScreen) {
     return (
-      <div className="px-8 py-16 text-center">
+      <div className="w-full text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)]">
           <span className="text-2xl">✓</span>
         </div>
@@ -854,7 +876,7 @@ function StepPreview({
     step.type === "tel" ||
     step.type === "link";
   return (
-    <div className="px-8 py-14">
+    <div className="w-full">
       {step.media && <MediaView media={step.media} />}
       {step.type !== "welcome" && eyebrow && (
         <div className="lbl mb-4">{eyebrow}</div>

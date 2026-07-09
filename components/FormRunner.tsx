@@ -93,6 +93,20 @@ export function FormRunner({ form }: { form: FormConfig }) {
     return () => clearTimeout(id);
   }, [index]);
 
+  // Enter inicia na tela de boas-vindas
+  useEffect(() => {
+    if (step.type !== "welcome") return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, step.type]);
+
   const result = useMemo(() => {
     const score = computeScore(form, answers);
     const tier = resolveTier(form, score);
@@ -205,36 +219,23 @@ export function FormRunner({ form }: { form: FormConfig }) {
   }
 
   return (
-    <div className="flex-1 flex items-center justify-center px-5 pb-10">
-      <div className="w-full max-w-[620px]">
-        {/* Progresso */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="lbl">
-              {step.type === "welcome"
-                ? form.eyebrow ?? "Começar"
-                : `Etapa ${index} de ${total - 1}`}
-            </span>
-            <span className="mono text-[11px] text-[var(--text3)]">
-              {Math.max(progress, 0)}%
-            </span>
-          </div>
-          <div className="h-[3px] w-full rounded-full bg-[var(--border)] overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 ease-out"
-              style={{
-                width: `${Math.max(progress, 4)}%`,
-                background: "var(--form-btn-bg, var(--accent))",
-              }}
-            />
-          </div>
+    <>
+      {/* Barra de progresso no topo (só nas perguntas) */}
+      {step.type !== "welcome" && (
+        <div className="fixed left-0 top-0 z-30 h-1.5 w-full bg-black/10">
+          <div
+            className="h-full transition-all duration-500 ease-out"
+            style={{
+              width: `${Math.max(progress, 3)}%`,
+              background: "var(--form-title, #111)",
+            }}
+          />
         </div>
+      )}
 
-        {/* Card da etapa */}
-        <div
-          key={index}
-          className="step-in rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-9 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
-        >
+      {/* Conteúdo centralizado, sem card/borda, ocupando a tela */}
+      <div className="flex min-h-screen flex-1 items-center justify-center px-6 py-16">
+        <div key={index} className="step-in w-full max-w-[640px]">
           <StepBody
             field={step}
             answers={answers}
@@ -244,47 +245,68 @@ export function FormRunner({ form }: { form: FormConfig }) {
             onEnter={goNext}
           />
 
-          {error && (
-            <p className="mt-4 text-sm text-[var(--red)]">{error}</p>
-          )}
+          {error && <p className="mt-4 text-sm text-[var(--red)]">{error}</p>}
 
-          {/* Ações */}
-          <div className="mt-8 flex items-center gap-3">
-            {step.type === "welcome" ? (
+          {/* Ação */}
+          {step.type !== "single" && (
+            <div className="mt-8 flex items-center gap-3">
               <PrimaryButton onClick={goNext} disabled={submitting}>
-                {step.buttonLabel ?? "Começar"}
+                {step.type === "welcome"
+                  ? step.buttonLabel ?? "Começar"
+                  : index === total - 1
+                  ? submitting
+                    ? "Enviando…"
+                    : "Ver meu resultado"
+                  : "OK"}
               </PrimaryButton>
-            ) : (
-              <>
-                {step.type !== "single" && (
-                  <PrimaryButton onClick={goNext} disabled={submitting}>
-                    {index === total - 1
-                      ? submitting
-                        ? "Enviando…"
-                        : "Ver meu resultado"
-                      : "Continuar"}
-                  </PrimaryButton>
-                )}
-                {index > 0 && (
-                  <button
-                    onClick={goBack}
-                    className="text-sm text-[var(--text2)] hover:text-[var(--text)] transition px-3 py-2"
-                  >
-                    Voltar
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+              <span
+                className="mono text-xs"
+                style={{ color: "var(--form-title)", opacity: 0.55 }}
+              >
+                Pressione Enter ↵
+              </span>
+            </div>
+          )}
         </div>
-
-        {step.type === "welcome" && (
-          <p className="mt-5 text-center mono text-[11px] text-[var(--text3)]">
-            Leva menos de 1 minuto · Seus dados estão seguros
-          </p>
-        )}
       </div>
-    </div>
+
+      {/* Navegação no rodapé (voltar / avançar) */}
+      <div className="fixed bottom-5 right-5 z-30 flex items-center gap-1.5">
+        <NavArrow
+          dir="back"
+          onClick={goBack}
+          disabled={history.length <= 1}
+        />
+        <NavArrow dir="forward" onClick={goNext} disabled={submitting} />
+      </div>
+    </>
+  );
+}
+
+function NavArrow({
+  dir,
+  onClick,
+  disabled,
+}: {
+  dir: "back" | "forward";
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === "back" ? "Voltar" : "Avançar"}
+      className="flex h-9 w-9 items-center justify-center rounded-md bg-black/85 text-white transition hover:bg-black disabled:opacity-30"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d={dir === "back" ? "M15 18l-6-6 6-6" : "M9 18l6-6-6-6"}
+        />
+      </svg>
+    </button>
   );
 }
 
