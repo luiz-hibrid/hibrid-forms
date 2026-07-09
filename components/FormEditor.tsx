@@ -336,6 +336,23 @@ export function FormEditor({
       )
     );
   }
+  function addOptionLabeled(key: string, label: string) {
+    const text = label.trim();
+    if (!text) return;
+    setSteps((prev) =>
+      prev.map((s) => {
+        if (s._key !== key) return s;
+        const n = (s.options?.length ?? 0) + 1;
+        return {
+          ...s,
+          options: [
+            ...(s.options ?? []),
+            { label: text, value: slugify(text) || `opcao-${n}`, weight: 0 },
+          ],
+        };
+      })
+    );
+  }
 
   // ---------- tiers / endscreens / pixel ----------
   function updateTier(id: string, patch: Partial<Tier>) {
@@ -766,6 +783,9 @@ export function FormEditor({
                           ? endScreenFor(selectedEndingTier)
                           : null
                       }
+                      onUpdateOption={updateOption}
+                      onRemoveOption={removeOption}
+                      onAddOption={addOptionLabeled}
                     />
                   </div>
                 </div>
@@ -774,7 +794,7 @@ export function FormEditor({
           </div>
 
           {/* Coluna direita — configurações da seleção */}
-          <aside className="w-[320px] shrink-0 overflow-y-auto border-l border-[var(--border)] bg-[var(--card)] p-4">
+          <aside className="w-[320px] shrink-0 overflow-y-auto overflow-x-hidden border-l border-[var(--border)] bg-[var(--card)] p-4">
             {selectedStep && (
               <StepSettings
                 step={selectedStep}
@@ -833,12 +853,19 @@ function StepPreview({
   step,
   endingTier,
   endScreen,
+  onUpdateOption,
+  onRemoveOption,
+  onAddOption,
 }: {
   eyebrow: string;
   step: (Field & { _key: string }) | null;
   endingTier: string | null;
   endScreen: EndScreen | null;
+  onUpdateOption: (key: string, idx: number, patch: Partial<Option>) => void;
+  onRemoveOption: (key: string, idx: number) => void;
+  onAddOption: (key: string, label: string) => void;
 }) {
+  const [newItem, setNewItem] = useState("");
   const btnStyle = {
     background: "var(--form-btn-bg)",
     color: "var(--form-btn-text)",
@@ -912,17 +939,57 @@ function StepPreview({
             {(step.options ?? []).map((o, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white/40 px-4 py-3"
-                style={{ color: "var(--form-answer)" }}
+                className="group flex items-center gap-3 rounded-lg border border-[var(--border)] bg-white/50 px-3 py-2.5"
               >
-                {o.label}
                 <span
-                  className={`h-4 w-4 border border-[var(--border)] ${
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center border text-[0.72rem] font-bold text-[var(--text2)] ${
                     step.type === "single" ? "rounded-full" : "rounded"
-                  }`}
+                  } border-[var(--border)]`}
+                >
+                  {String.fromCharCode(65 + i)}
+                </span>
+                <input
+                  value={o.label}
+                  onChange={(e) => onUpdateOption(step._key, i, { label: e.target.value })}
+                  className="min-w-0 flex-1 bg-transparent text-[1rem] outline-none"
+                  style={{ color: "var(--form-answer)" }}
                 />
+                <button
+                  onClick={() => onRemoveOption(step._key, i)}
+                  className="shrink-0 text-[var(--text3)] opacity-0 transition hover:text-[var(--red)] group-hover:opacity-100"
+                  aria-label="Remover opção"
+                >
+                  ✕
+                </button>
               </div>
             ))}
+
+            {/* Adicionar opção inline */}
+            <div className="flex items-center gap-2">
+              <input
+                value={newItem}
+                onChange={(e) => setNewItem(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onAddOption(step._key, newItem);
+                    setNewItem("");
+                  }
+                }}
+                placeholder="Novo item…"
+                className="min-w-0 flex-1 rounded-lg border border-dashed border-[var(--border)] bg-transparent px-3 py-2.5 text-[1rem] text-[var(--text)] outline-none placeholder:text-[var(--text3)]"
+              />
+              <button
+                onClick={() => {
+                  onAddOption(step._key, newItem);
+                  setNewItem("");
+                }}
+                className="shrink-0 rounded-lg bg-[var(--form-btn-bg,var(--accent))] px-4 py-2.5 text-sm font-bold"
+                style={{ color: "var(--form-btn-text, var(--text))" }}
+              >
+                Adicionar
+              </button>
+            </div>
           </div>
         )}
         <div className="mt-8">
@@ -1055,13 +1122,13 @@ function StepSettings({
               >
                 <div className="flex items-center gap-2">
                   <input
-                    className={`${inputCls} flex-1`}
+                    className={`${inputCls} min-w-0 flex-1`}
                     value={o.label}
                     onChange={(e) => updateOption(key, oi, { label: e.target.value })}
                   />
                   <input
                     type="number"
-                    className="w-14 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
+                    className="w-12 shrink-0 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
                     value={o.weight ?? 0}
                     onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
                   />
@@ -1075,7 +1142,7 @@ function StepSettings({
                       onChange={(e) =>
                         updateOption(key, oi, { next: e.target.value || undefined })
                       }
-                      className="flex-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.78rem]"
+                      className="min-w-0 flex-1 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.78rem]"
                     >
                       <option value="">Seguir na ordem</option>
                       {steps
