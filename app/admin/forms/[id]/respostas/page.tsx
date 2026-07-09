@@ -3,7 +3,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getFormRow } from "@/lib/forms-db";
 import type { Field } from "@/lib/types";
-import { AdminHeader } from "@/components/AdminHeader";
+import { FormResultsTopBar } from "@/components/FormResultsTopBar";
 import { ResultsView } from "@/components/ResultsView";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,7 @@ export default async function ResultsPage({
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      <AdminHeader />
+      <FormResultsTopBar formId={form.id} formName={form.name} />
       <ResultsView
         formId={form.id}
         formName={form.name}

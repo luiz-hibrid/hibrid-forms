@@ -167,7 +167,13 @@ interface EditorField extends Field {
 
 type TopTab = "edit" | "integrate" | "share";
 
-export function FormEditor({ initial }: { initial: FormRow }) {
+export function FormEditor({
+  initial,
+  initialTab,
+}: {
+  initial: FormRow;
+  initialTab?: TopTab;
+}) {
   const router = useRouter();
   const cfg = (initial.config ?? {}) as any;
 
@@ -192,7 +198,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
-  const [topTab, setTopTab] = useState<TopTab>("edit");
+  const [topTab, setTopTab] = useState<TopTab>(initialTab ?? "edit");
   const [leftTab, setLeftTab] = useState<"content" | "design" | "settings">(
     "content"
   );

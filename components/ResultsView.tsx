@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Field } from "@/lib/types";
 import { TierBadge } from "@/components/TierBadge";
+import { FieldTypeIcon } from "@/components/FieldTypeIcon";
 
 interface Submission {
   id: string;
@@ -75,25 +76,7 @@ export function ResultsView({
   const completion = stats.views > 0 ? Math.round((responses / stats.views) * 100) : 0;
 
   return (
-    <div className="mx-auto max-w-[1200px] px-5 py-6 sm:px-8">
-      {/* Cabeçalho */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/admin/forms" className="mono text-[0.72rem] text-[var(--text3)] hover:text-[var(--text)]">
-            ← Formulários
-          </Link>
-          <h1 className="mt-1 text-[1.4rem] font-black tracking-tight text-[var(--text)]">
-            {formName}
-          </h1>
-        </div>
-        <Link
-          href={`/admin/forms/${formId}`}
-          className="rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-        >
-          Editar formulário
-        </Link>
-      </div>
-
+    <div className="w-full px-5 py-6 sm:px-8">
       {/* Sub-nav */}
       <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <SubTab active={tab === "summary"} onClick={() => setTab("summary")}>Resumo</SubTab>
@@ -112,7 +95,9 @@ export function ResultsView({
         />
       )}
       {tab === "responses" && (
-        <Responses steps={steps} submissions={submissions} formSlug={formSlug} onChange={() => router.refresh()} />
+        <div className="-mx-5 sm:-mx-8">
+          <Responses steps={steps} submissions={submissions} formSlug={formSlug} onChange={() => router.refresh()} />
+        </div>
       )}
       {tab === "kanban" && (
         <Kanban
@@ -245,8 +230,8 @@ function Responses({
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-3">
+    <div className="border-y border-[var(--border)] bg-[var(--card)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-8">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -266,11 +251,23 @@ function Responses({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--border)] text-left">
-              <Th>Enviado</Th>
-              <Th>Status</Th>
+            <tr className="border-b border-[var(--border)] bg-[var(--bg)] text-left">
+              <Th>
+                <HdrIcon d="M12 8v4l3 2" circle /> Enviado
+              </Th>
+              <Th>
+                <HdrIcon d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1" /> ID
+              </Th>
+              <Th>
+                <HdrIcon d="M20 6L9 17l-5-5" /> Status
+              </Th>
               {steps.map((s) => (
-                <Th key={s.id}>{s.title}</Th>
+                <Th key={s.id}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <FieldTypeIcon type={s.type} size={16} />
+                    {s.title}
+                  </span>
+                </Th>
               ))}
               <Th className="text-right">Score</Th>
               <Th>Faixa</Th>
@@ -280,7 +277,7 @@ function Responses({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={steps.length + 5} className="px-4 py-12 text-center text-[var(--text2)]">
+                <td colSpan={steps.length + 6} className="px-4 py-12 text-center text-[var(--text2)]">
                   Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
                 </td>
               </tr>
@@ -289,6 +286,9 @@ function Responses({
               <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--bg)]">
                 <td className="whitespace-nowrap px-4 py-3 mono text-[0.72rem] text-[var(--text3)]">
                   {fmtDate(r.created_at)}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3 mono text-[0.7rem] text-[var(--text3)]">
+                  {r.id.slice(0, 8)}
                 </td>
                 <td className="px-4 py-3">
                   <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
@@ -474,7 +474,16 @@ function RoundBtn({ children, onClick, label }: { children: React.ReactNode; onC
 function Th({ children, className = "" }: { children?: React.ReactNode; className?: string }) {
   return (
     <th className={`mono whitespace-nowrap px-4 py-3 text-[0.6rem] font-normal uppercase tracking-wider text-[var(--text3)] ${className}`}>
-      {children}
+      <span className="inline-flex items-center gap-1.5">{children}</span>
     </th>
+  );
+}
+
+function HdrIcon({ d, circle }: { d: string; circle?: boolean }) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-70">
+      {circle && <circle cx="12" cy="12" r="9" />}
+      <path d={d} />
+    </svg>
   );
 }
