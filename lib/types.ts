@@ -28,6 +28,18 @@ export interface Option {
 
 export const END_STEP = "__end__";
 
+export interface FieldMedia {
+  kind: "image" | "video";
+  url: string;
+  alt?: string;
+  /** largura em % (ex.: "60") ou vazio para auto */
+  width?: string;
+  /** altura em px (ex.: "240") ou vazio para auto */
+  height?: string;
+  /** alinhamento do bloco acima da pergunta */
+  align?: "left" | "center" | "right";
+}
+
 export interface Field {
   id: string;
   type: FieldType;
@@ -39,6 +51,8 @@ export interface Field {
   options?: Option[];
   /** Texto do botão em telas welcome */
   buttonLabel?: string;
+  /** imagem ou vídeo exibido acima da pergunta */
+  media?: FieldMedia;
 }
 
 export interface Tier {
@@ -74,6 +88,25 @@ export interface PixelConfig {
   ga4ApiSecret?: string;
 }
 
+export interface ThemeConfig {
+  /** cor de fundo da página */
+  bg?: string;
+  /** chave da fonte (ver FONT_OPTIONS) */
+  font?: string;
+  /** tamanho base da fonte */
+  fontSize?: "sm" | "md" | "lg";
+  /** cor de títulos e textos */
+  questionColor?: string;
+  /** cor das respostas */
+  answerColor?: string;
+  /** cor de fundo do botão */
+  buttonBg?: string;
+  /** cor do texto do botão */
+  buttonText?: string;
+  /** formato dos cantos do botão */
+  corners?: "square" | "rounded" | "pill";
+}
+
 export interface FormConfig {
   slug: string;
   name: string;
@@ -84,4 +117,6 @@ export interface FormConfig {
   endScreens: EndScreen[];
   /** rastreamento/conversão por formulário */
   pixel?: PixelConfig;
+  /** personalização visual do formulário */
+  theme?: ThemeConfig;
 }

@@ -9,8 +9,10 @@ import type {
   Tier,
   EndScreen,
   PixelConfig,
+  ThemeConfig,
 } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
+import { FONT_OPTIONS, DEFAULT_THEME, themeVars } from "@/lib/theme";
 import type { FormRow } from "@/lib/forms-db";
 import { Logo } from "@/components/Logo";
 
@@ -24,17 +26,6 @@ function slugify(input: string): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
 }
-
-const TYPE_LABELS: Record<FieldType, string> = {
-  welcome: "Tela de boas-vindas",
-  text: "Texto longo",
-  name: "Nome",
-  email: "E-mail",
-  tel: "Telefone / WhatsApp",
-  link: "Link / site",
-  single: "Escolha única",
-  multi: "Múltipla escolha",
-};
 
 // Metadados visuais por tipo (cor + ícone), estilo Yay
 const TYPE_META: Record<
@@ -85,6 +76,69 @@ function ColorIcon({ type, size = 24 }: { type: FieldType; size?: number }) {
   );
 }
 
+// Ordem dos tipos no seletor
+const TYPE_ORDER: FieldType[] = [
+  "single",
+  "multi",
+  "name",
+  "email",
+  "tel",
+  "link",
+  "text",
+  "welcome",
+];
+
+// Seletor de tipo com ícones coloridos (estilo Yay)
+function TypeSelect({
+  value,
+  onChange,
+}: {
+  value: FieldType;
+  onChange: (t: FieldType) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`${inputCls} flex items-center justify-between gap-2`}
+      >
+        <span className="flex items-center gap-2">
+          <ColorIcon type={value} size={22} />
+          {TYPE_META[value].label}
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--card)] p-1 shadow-xl">
+            {TYPE_ORDER.map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  onChange(t);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--text)] transition hover:bg-[var(--bg)] ${
+                  t === value ? "bg-[rgba(194,251,141,0.14)]" : ""
+                }`}
+              >
+                <ColorIcon type={t} size={22} />
+                {TYPE_META[t].label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // Tile da lista de perguntas: ícone colorido com o número DENTRO (estilo Yay)
 function QuestionTile({ type, n }: { type: FieldType; n: number }) {
   const m = TYPE_META[type];
@@ -131,12 +185,15 @@ export function FormEditor({ initial }: { initial: FormRow }) {
   );
   const [endScreens, setEndScreens] = useState<EndScreen[]>(cfg.endScreens ?? []);
   const [pixel, setPixel] = useState<PixelConfig>(cfg.pixel ?? {});
+  const [theme, setTheme] = useState<ThemeConfig>(cfg.theme ?? {});
   const [webhookUrl, setWebhookUrl] = useState<string>(cfg.webhookUrl ?? "");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [topTab, setTopTab] = useState<TopTab>("edit");
-  const [leftTab, setLeftTab] = useState<"content" | "settings">("content");
+  const [leftTab, setLeftTab] = useState<"content" | "design" | "settings">(
+    "content"
+  );
   const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [selected, setSelected] = useState<string>(
     (cfg.steps ?? [])[0] ? "step:0" : ""
@@ -295,6 +352,9 @@ export function FormEditor({ initial }: { initial: FormRow }) {
   function updatePixel(patch: Partial<PixelConfig>) {
     setPixel((p) => ({ ...p, ...patch }));
   }
+  function updateTheme(patch: Partial<ThemeConfig>) {
+    setTheme((t) => ({ ...t, ...patch }));
+  }
 
   // ---------- save ----------
   function buildConfig() {
@@ -330,6 +390,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
       tiers,
       endScreens,
       pixel: cleanPixel,
+      theme,
       webhookUrl: webhookUrl.trim() || undefined,
     };
   }
@@ -370,20 +431,24 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     <div className="flex h-screen flex-col bg-[var(--bg)]">
       {/* ===== Top bar ===== */}
       <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <button
             onClick={() => router.push("/admin/forms")}
-            className="text-[var(--text2)] hover:text-[var(--text)]"
+            className="shrink-0 text-[var(--text2)] hover:text-[var(--text)]"
             aria-label="Voltar"
           >
             ←
           </button>
-          <Logo height={20} />
-          <span className="text-sm font-medium text-[var(--text2)]">{name}</span>
+          <span className="shrink-0">
+            <Logo height={20} />
+          </span>
+          <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
+            {name}
+          </span>
         </div>
 
         {/* Nav pílula central */}
-        <div className="hidden items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
+        <div className="hidden shrink-0 items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
           <NavPill active={topTab === "edit"} onClick={() => setTopTab("edit")} icon={<IconEdit />}>
             Editor
           </NavPill>
@@ -402,7 +467,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           </a>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 items-center justify-end gap-3">
           {msg && (
             <span className="mono text-[0.7rem] text-[var(--text3)]">{msg}</span>
           )}
@@ -433,10 +498,17 @@ export function FormEditor({ initial }: { initial: FormRow }) {
               <SideTab active={leftTab === "content"} onClick={() => setLeftTab("content")}>
                 Conteúdo
               </SideTab>
+              <SideTab active={leftTab === "design"} onClick={() => setLeftTab("design")}>
+                Design
+              </SideTab>
               <SideTab active={leftTab === "settings"} onClick={() => setLeftTab("settings")}>
                 Ajustes
               </SideTab>
             </div>
+
+            {leftTab === "design" && (
+              <DesignPanel theme={theme} updateTheme={updateTheme} />
+            )}
 
             {leftTab === "content" && (
               <div>
@@ -652,14 +724,24 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                   <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
                   <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
                 </div>
-                <StepPreview
-                  eyebrow={eyebrow}
-                  step={selectedStep}
-                  endingTier={selectedEndingTier}
-                  endScreen={
-                    selectedEndingTier ? endScreenFor(selectedEndingTier) : null
+                <div
+                  style={
+                    {
+                      ...themeVars(theme),
+                      background: "var(--form-bg)",
+                      fontFamily: "var(--form-font)",
+                    } as React.CSSProperties
                   }
-                />
+                >
+                  <StepPreview
+                    eyebrow={eyebrow}
+                    step={selectedStep}
+                    endingTier={selectedEndingTier}
+                    endScreen={
+                      selectedEndingTier ? endScreenFor(selectedEndingTier) : null
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -730,20 +812,29 @@ function StepPreview({
   endingTier: string | null;
   endScreen: EndScreen | null;
 }) {
+  const btnStyle = {
+    background: "var(--form-btn-bg)",
+    color: "var(--form-btn-text)",
+    borderRadius: "var(--form-radius)",
+  } as React.CSSProperties;
+
   if (endingTier && endScreen) {
     return (
       <div className="px-8 py-16 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)]">
           <span className="text-2xl">✓</span>
         </div>
-        <h1 className="mt-6 text-2xl font-black tracking-tight text-[var(--text)]">
+        <h1
+          className="mt-6 text-2xl font-black tracking-tight"
+          style={{ color: "var(--form-title)" }}
+        >
           {(endScreen.title || "").replace(/\{nome\}/g, "João")}
         </h1>
-        <p className="mt-3 text-[var(--text2)]">
+        <p className="mt-3" style={{ color: "var(--form-title)", opacity: 0.7 }}>
           {(endScreen.message || "").replace(/\{nome\}/g, "João")}
         </p>
         {endScreen.ctaLabel && (
-          <span className="mt-6 inline-block rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-bold text-[var(--text)]">
+          <span className="mt-6 inline-block px-6 py-3 text-sm font-bold" style={btnStyle}>
             {endScreen.ctaLabel}
           </span>
         )}
@@ -768,11 +859,19 @@ function StepPreview({
       {step.type !== "welcome" && eyebrow && (
         <div className="lbl mb-4">{eyebrow}</div>
       )}
-      <h1 className="text-[1.7rem] font-black leading-tight tracking-tight text-[var(--text)]">
+      <h1
+        className="font-black leading-tight tracking-tight"
+        style={{
+          color: "var(--form-title)",
+          fontSize: "calc(1.7rem * var(--form-scale, 1))",
+        }}
+      >
         {step.title || "(sem título)"}
       </h1>
       {step.subtitle && (
-        <p className="mt-2 text-[var(--text2)]">{step.subtitle}</p>
+        <p className="mt-2" style={{ color: "var(--form-title)", opacity: 0.65 }}>
+          {step.subtitle}
+        </p>
       )}
       <div className="mt-6">
         {isInput && (
@@ -785,7 +884,8 @@ function StepPreview({
             {(step.options ?? []).map((o, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between rounded-lg border border-[var(--border)] px-4 py-3 text-[var(--text)]"
+                className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white/40 px-4 py-3"
+                style={{ color: "var(--form-answer)" }}
               >
                 {o.label}
                 <span
@@ -798,7 +898,10 @@ function StepPreview({
           </div>
         )}
         <div className="mt-8">
-          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-sm font-bold text-[var(--text)]">
+          <span
+            className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold"
+            style={btnStyle}
+          >
             {step.type === "welcome" ? step.buttonLabel || "Começar" : "Continuar"} →
           </span>
         </div>
@@ -845,18 +948,23 @@ function StepSettings({
         </div>
       </div>
 
+      {step.type !== "welcome" && (
+        <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
+          <div className="mono mb-2 text-[0.6rem] font-normal uppercase tracking-wider text-[var(--text3)]">
+            Configurações
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-[var(--text)]">Obrigatório</span>
+            <Toggle
+              checked={!!step.required}
+              onChange={(v) => updateStep(key, { required: v })}
+            />
+          </div>
+        </div>
+      )}
+
       <FieldRow label="Tipo">
-        <select
-          value={step.type}
-          onChange={(e) => changeType(key, e.target.value as FieldType)}
-          className={inputCls}
-        >
-          {(Object.keys(TYPE_LABELS) as FieldType[]).map((t) => (
-            <option key={t} value={t}>
-              {TYPE_LABELS[t]}
-            </option>
-          ))}
-        </select>
+        <TypeSelect value={step.type} onChange={(t) => changeType(key, t)} />
       </FieldRow>
 
       <FieldRow label="Título">
@@ -960,16 +1068,6 @@ function StepSettings({
         </div>
       )}
 
-      {step.type !== "welcome" && (
-        <label className="mt-4 flex items-center gap-2 text-sm text-[var(--text2)]">
-          <input
-            type="checkbox"
-            checked={!!step.required}
-            onChange={(e) => updateStep(key, { required: e.target.checked })}
-          />
-          Obrigatório
-        </label>
-      )}
     </div>
   );
 }
@@ -1027,6 +1125,181 @@ function EndingSettings({
         />
         Marcar como lead qualificado
       </label>
+    </div>
+  );
+}
+
+// =====================================================================
+// Painel Design (esquerda)
+// =====================================================================
+function DesignPanel({
+  theme,
+  updateTheme,
+}: {
+  theme: ThemeConfig;
+  updateTheme: (p: Partial<ThemeConfig>) => void;
+}) {
+  const t = { ...DEFAULT_THEME, ...theme };
+  return (
+    <div className="grid gap-5">
+      <div>
+        <DesignLabel>Página</DesignLabel>
+        <ColorField
+          label="Cor de fundo"
+          value={t.bg}
+          onChange={(v) => updateTheme({ bg: v })}
+        />
+        <div className="mb-3">
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Fonte</label>
+          <select
+            value={t.font}
+            onChange={(e) => updateTheme({ font: e.target.value })}
+            className={inputCls}
+          >
+            {FONT_OPTIONS.map((f) => (
+              <option key={f.key} value={f.key}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mb-1">
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">
+            Tamanho da fonte
+          </label>
+          <Segmented
+            value={t.fontSize}
+            onChange={(v) => updateTheme({ fontSize: v as ThemeConfig["fontSize"] })}
+            options={[
+              { value: "sm", label: "SM" },
+              { value: "md", label: "MD" },
+              { value: "lg", label: "LG" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div>
+        <DesignLabel>Pergunta</DesignLabel>
+        <ColorField
+          label="Títulos e textos"
+          value={t.questionColor}
+          onChange={(v) => updateTheme({ questionColor: v })}
+        />
+        <ColorField
+          label="Respostas"
+          value={t.answerColor}
+          onChange={(v) => updateTheme({ answerColor: v })}
+        />
+      </div>
+
+      <div>
+        <DesignLabel>Botão</DesignLabel>
+        <ColorField
+          label="Cor de fundo"
+          value={t.buttonBg}
+          onChange={(v) => updateTheme({ buttonBg: v })}
+        />
+        <ColorField
+          label="Cor do texto"
+          value={t.buttonText}
+          onChange={(v) => updateTheme({ buttonText: v })}
+        />
+        <div className="mb-1">
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Cantos</label>
+          <Segmented
+            value={t.corners}
+            onChange={(v) => updateTheme({ corners: v as ThemeConfig["corners"] })}
+            options={[
+              { value: "square", label: <CornerIcon radius={1} /> },
+              { value: "rounded", label: <CornerIcon radius={5} /> },
+              { value: "pill", label: <CornerIcon radius={9} /> },
+            ]}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CornerIcon({ radius }: { radius: number }) {
+  return (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <rect
+        x="1.5"
+        y="1.5"
+        width="19"
+        height="13"
+        rx={radius}
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function DesignLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mono mb-2 text-[0.6rem] font-normal uppercase tracking-wider text-[var(--text3)]">
+      {children}
+    </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <span className="text-sm text-[var(--text2)]">{label}</span>
+      <label className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-2 py-1">
+        <span
+          className="h-5 w-5 rounded-full border border-[var(--border)]"
+          style={{ background: value }}
+        />
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-0 w-0 opacity-0"
+        />
+        <span className="mono text-[0.62rem] text-[var(--text3)]">{value}</span>
+      </label>
+    </div>
+  );
+}
+
+function Segmented({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: React.ReactNode }[];
+}) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] p-1">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+            value === o.value
+              ? "bg-[var(--card)] text-[var(--text)] shadow-sm"
+              : "text-[var(--text2)] hover:text-[var(--text)]"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -1280,6 +1553,32 @@ function SideTab({
 
 function ListLabel({ children }: { children: React.ReactNode }) {
   return <div className="lbl mb-2 block">{children}</div>;
+}
+
+function Toggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+        checked ? "bg-[var(--text)]" : "bg-[var(--border)]"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+          checked ? "translate-x-[22px]" : "translate-x-[2px]"
+        }`}
+      />
+    </button>
+  );
 }
 
 function FieldRow({

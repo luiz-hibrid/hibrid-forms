@@ -220,8 +220,11 @@ export function FormRunner({ form }: { form: FormConfig }) {
           </div>
           <div className="h-[3px] w-full rounded-full bg-[var(--border)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-[var(--accent)] transition-all duration-500 ease-out"
-              style={{ width: `${Math.max(progress, 4)}%` }}
+              className="h-full rounded-full transition-all duration-500 ease-out"
+              style={{
+                width: `${Math.max(progress, 4)}%`,
+                background: "var(--form-btn-bg, var(--accent))",
+              }}
             />
           </div>
         </div>
@@ -306,7 +309,13 @@ function StepBody({
 
   return (
     <div>
-      <h1 className="text-[1.6rem] sm:text-[1.9rem] font-black leading-tight tracking-tight text-[var(--text)]">
+      <h1
+        className="font-black leading-tight tracking-tight"
+        style={{
+          color: "var(--form-title, var(--text))",
+          fontSize: "calc(1.8rem * var(--form-scale, 1))",
+        }}
+      >
         {field.title}
       </h1>
       {field.subtitle && (
@@ -373,7 +382,10 @@ function StepBody({
                   }`}
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
-                  <span className="font-medium text-[var(--text)]">
+                  <span
+                    className="font-medium"
+                    style={{ color: "var(--form-answer, var(--text))" }}
+                  >
                     {opt.label}
                   </span>
                   <span
@@ -426,7 +438,12 @@ function PrimaryButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className="group inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-6 py-3 text-[0.95rem] font-bold text-[var(--text)] transition-all duration-200 hover:bg-[var(--acc2)] hover:-translate-y-[1px] disabled:opacity-45 disabled:pointer-events-none"
+      className="group inline-flex items-center gap-2 px-6 py-3 text-[0.95rem] font-bold transition-all duration-200 hover:-translate-y-[1px] hover:brightness-95 disabled:opacity-45 disabled:pointer-events-none"
+      style={{
+        background: "var(--form-btn-bg, var(--accent))",
+        color: "var(--form-btn-text, var(--text))",
+        borderRadius: "var(--form-radius, 9999px)",
+      }}
     >
       {children}
       <svg
@@ -511,7 +528,12 @@ function EndScreen({
         {screen.ctaLabel && screen.ctaHref && (
           <a
             href={screen.ctaHref}
-            className="group mt-8 inline-flex items-center gap-2 rounded-full bg-[var(--accent)] px-7 py-3.5 text-[0.95rem] font-bold text-[var(--text)] transition-all duration-200 hover:bg-[var(--acc2)] hover:-translate-y-[1px]"
+            className="group mt-8 inline-flex items-center gap-2 px-7 py-3.5 text-[0.95rem] font-bold transition-all duration-200 hover:-translate-y-[1px] hover:brightness-95"
+            style={{
+              background: "var(--form-btn-bg, var(--accent))",
+              color: "var(--form-btn-text, var(--text))",
+              borderRadius: "var(--form-radius, 9999px)",
+            }}
           >
             {screen.ctaLabel}
             <svg
