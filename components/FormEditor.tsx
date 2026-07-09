@@ -519,7 +519,7 @@ export function FormEditor({
       {topTab === "edit" && (
         <div className="flex flex-1 overflow-hidden">
           {/* Coluna esquerda */}
-          <aside className="w-[280px] shrink-0 overflow-y-auto overflow-x-hidden border-r border-[var(--border)] bg-[var(--card)] p-3">
+          <aside className="w-[340px] shrink-0 overflow-y-auto overflow-x-hidden border-r border-[var(--border)] bg-[var(--card)] p-3">
             <div className="mb-3 flex items-center gap-1 rounded-lg bg-[var(--bg)] p-1">
               <SideTab active={leftTab === "content"} onClick={() => setLeftTab("content")}>
                 Conteúdo
@@ -715,7 +715,7 @@ export function FormEditor({
           </aside>
 
           {/* Coluna central — preview */}
-          <div className="flex flex-1 flex-col overflow-hidden bg-[var(--bg)]">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--bg)]">
             <div className="flex items-center justify-center border-b border-[var(--border)] py-2.5">
               <div className="flex items-center gap-1 rounded-full bg-[var(--bg)] p-1">
                 {(["desktop", "tablet", "mobile"] as const).map((d) => (
@@ -794,7 +794,7 @@ export function FormEditor({
           </div>
 
           {/* Coluna direita — configurações da seleção */}
-          <aside className="w-[320px] shrink-0 overflow-y-auto overflow-x-hidden border-l border-[var(--border)] bg-[var(--card)] p-4">
+          <aside className="w-[340px] shrink-0 overflow-y-auto overflow-x-hidden border-l border-[var(--border)] bg-[var(--card)] p-4">
             {selectedStep && (
               <StepSettings
                 step={selectedStep}
