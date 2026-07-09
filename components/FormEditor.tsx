@@ -13,6 +13,7 @@ import type {
   FieldMedia,
 } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
+import { normalizeEnds, END_PREFIX } from "@/lib/ends";
 import { FONT_OPTIONS, DEFAULT_THEME, themeVars } from "@/lib/theme";
 import type { FormRow } from "@/lib/forms-db";
 import { Logo } from "@/components/Logo";
@@ -184,14 +185,20 @@ export function FormEditor({
   const [steps, setSteps] = useState<EditorField[]>(
     (cfg.steps ?? []).map((s: Field) => ({ ...s, _key: genId("k") }))
   );
+  const _norm = normalizeEnds(cfg);
   const [tiers, setTiers] = useState<Tier[]>(
-    cfg.tiers ?? [
-      { id: "frio", name: "Frio", minPct: 0, color: "#999999" },
-      { id: "morno", name: "Morno", minPct: 40, color: "#F0B822" },
-      { id: "quente", name: "Quente", minPct: 70, color: "#c2fb8d" },
-    ]
+    _norm.tiers.length
+      ? _norm.tiers
+      : [
+          { id: "frio", name: "Frio", minPct: 0, color: "#999999" },
+          { id: "morno", name: "Morno", minPct: 40, color: "#F0B822" },
+          { id: "quente", name: "Quente", minPct: 70, color: "#c2fb8d" },
+        ]
   );
-  const [endScreens, setEndScreens] = useState<EndScreen[]>(cfg.endScreens ?? []);
+  const [endScreens, setEndScreens] = useState<EndScreen[]>(_norm.endScreens);
+  const [defaultEndId, setDefaultEndId] = useState<string | undefined>(
+    _norm.defaultEndScreenId
+  );
   const [pixel, setPixel] = useState<PixelConfig>(cfg.pixel ?? {});
   const [theme, setTheme] = useState<ThemeConfig>(cfg.theme ?? {});
   const [webhookUrl, setWebhookUrl] = useState<string>(cfg.webhookUrl ?? "");
@@ -231,9 +238,9 @@ export function FormEditor({
     return max;
   }, [steps]);
 
-  // seleção: "step:<_key>" | "end:<tierId>"
+  // seleção: "step:<_key>" | "end:<endScreenId>"
   const selectedStep = steps.find((s) => `step:${s._key}` === selected) ?? null;
-  const selectedEndingTier = selected.startsWith("end:")
+  const selectedEndingId = selected.startsWith("end:")
     ? selected.slice(4)
     : null;
 
@@ -358,21 +365,34 @@ export function FormEditor({
   function updateTier(id: string, patch: Partial<Tier>) {
     setTiers((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
-  function endScreenFor(tierId: string): EndScreen {
-    return (
-      endScreens.find((e) => e.tier === tierId) ?? {
-        tier: tierId,
+  function endScreenById(id: string | null): EndScreen | null {
+    return endScreens.find((e) => e.id === id) ?? null;
+  }
+  function updateEndScreen(id: string, patch: Partial<EndScreen>) {
+    setEndScreens((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  }
+  function addEndScreen() {
+    const id = genId("end");
+    setEndScreens((prev) => [
+      ...prev,
+      {
+        id,
+        name: "Nova tela final",
         title: "Obrigado, {nome}!",
         message: "Recebemos suas respostas.",
-      }
-    );
+      },
+    ]);
+    setSelected(`end:${id}`);
   }
-  function updateEndScreen(tierId: string, patch: Partial<EndScreen>) {
-    setEndScreens((prev) => {
-      const exists = prev.some((e) => e.tier === tierId);
-      if (exists) return prev.map((e) => (e.tier === tierId ? { ...e, ...patch } : e));
-      return [...prev, { ...endScreenFor(tierId), ...patch }];
-    });
+  function removeEndScreen(id: string) {
+    if (endScreens.length <= 1) return;
+    if (!confirm("Excluir esta tela final?")) return;
+    setEndScreens((prev) => prev.filter((e) => e.id !== id));
+    setTiers((prev) =>
+      prev.map((t) => (t.endScreenId === id ? { ...t, endScreenId: undefined } : t))
+    );
+    if (defaultEndId === id) setDefaultEndId(endScreens.find((e) => e.id !== id)?.id);
+    setSelected("");
   }
   function updatePixel(patch: Partial<PixelConfig>) {
     setPixel((p) => ({ ...p, ...patch }));
@@ -415,6 +435,7 @@ export function FormEditor({
       steps: finalSteps,
       tiers,
       endScreens,
+      defaultEndScreenId: defaultEndId,
       pixel: cleanPixel,
       theme,
       webhookUrl: webhookUrl.trim() || undefined,
@@ -623,24 +644,32 @@ export function FormEditor({
                 <div className="mt-5">
                   <ListLabel>Telas finais</ListLabel>
                   <div className="grid gap-1.5">
-                    {tiers.map((t) => (
+                    {endScreens.map((e) => (
                       <button
-                        key={t.id}
-                        onClick={() => setSelected(`end:${t.id}`)}
+                        key={e.id}
+                        onClick={() => setSelected(`end:${e.id}`)}
                         className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
-                          selected === `end:${t.id}`
+                          selected === `end:${e.id}`
                             ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
                             : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
                         }`}
                       >
                         <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ background: t.color }}
-                        />
-                        <span className="flex-1 text-[var(--text)]">{t.name}</span>
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white"
+                          style={{ background: e.qualified ? "#3d7a00" : "#9aa0a6", fontSize: 10 }}
+                        >
+                          ✓
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[var(--text)]">{e.name}</span>
                       </button>
                     ))}
                   </div>
+                  <button
+                    onClick={addEndScreen}
+                    className="mt-2 w-full rounded-lg border border-dashed border-[var(--border)] py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+                  >
+                    + Nova tela final
+                  </button>
                 </div>
               </div>
             )}
@@ -677,28 +706,69 @@ export function FormEditor({
                 </div>
 
                 <div>
-                  <ListLabel>Faixas de lead (% do score máx.)</ListLabel>
+                  <ListLabel>Faixas de score → tela final</ListLabel>
+                  <p className="mb-2 text-[0.75rem] text-[var(--text2)]">
+                    Usado só quando as perguntas têm pesos. Cada faixa (a partir
+                    de X% do score máximo) leva a uma tela final.
+                  </p>
                   <div className="grid gap-2">
                     {tiers.map((t) => (
-                      <div key={t.id} className="flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-full" style={{ background: t.color }} />
-                        <input
-                          className={`${inputCls} flex-1`}
-                          value={t.name}
-                          onChange={(e) => updateTier(t.id, { name: e.target.value })}
-                        />
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          className="w-14 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
-                          value={t.minPct}
-                          onChange={(e) => updateTier(t.id, { minPct: Number(e.target.value) })}
-                        />
-                        <span className="mono text-[0.65rem] text-[var(--text3)]">%</span>
+                      <div
+                        key={t.id}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-2.5"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: t.color }} />
+                          <input
+                            className={`${inputCls} min-w-0 flex-1`}
+                            value={t.name}
+                            onChange={(e) => updateTier(t.id, { name: e.target.value })}
+                          />
+                          <div className="flex shrink-0 items-center gap-1">
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              className="w-14 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-2 text-sm"
+                              value={t.minPct}
+                              onChange={(e) => updateTier(t.id, { minPct: Number(e.target.value) })}
+                            />
+                            <span className="mono text-[0.6rem] text-[var(--text3)]">%</span>
+                          </div>
+                        </div>
+                        <select
+                          value={t.endScreenId ?? ""}
+                          onChange={(e) => updateTier(t.id, { endScreenId: e.target.value || undefined })}
+                          className="mt-2 w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.8rem] text-[var(--text)] outline-none"
+                        >
+                          <option value="">Tela final: (padrão)</option>
+                          {endScreens.map((es) => (
+                            <option key={es.id} value={es.id}>
+                              Tela: {es.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <div>
+                  <ListLabel>Tela final padrão</ListLabel>
+                  <select
+                    value={defaultEndId ?? ""}
+                    onChange={(e) => setDefaultEndId(e.target.value || undefined)}
+                    className={inputCls}
+                  >
+                    {endScreens.map((es) => (
+                      <option key={es.id} value={es.id}>
+                        {es.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[0.72rem] text-[var(--text3)]">
+                    Exibida quando o lead termina sem rota específica.
+                  </p>
                 </div>
 
                 <div className="rounded-lg border p-3" style={{ borderColor: "rgba(255,69,69,0.4)" }}>
@@ -777,12 +847,8 @@ export function FormEditor({
                     <StepPreview
                       eyebrow={eyebrow}
                       step={selectedStep}
-                      endingTier={selectedEndingTier}
-                      endScreen={
-                        selectedEndingTier
-                          ? endScreenFor(selectedEndingTier)
-                          : null
-                      }
+                      endingId={selectedEndingId}
+                      endScreen={endScreenById(selectedEndingId)}
                       onUpdateOption={updateOption}
                       onRemoveOption={removeOption}
                       onAddOption={addOptionLabeled}
@@ -799,6 +865,7 @@ export function FormEditor({
               <StepSettings
                 step={selectedStep}
                 steps={steps}
+                endScreens={endScreens}
                 maxScore={maxScore}
                 updateStep={updateStep}
                 changeType={changeType}
@@ -809,14 +876,18 @@ export function FormEditor({
                 removeOption={removeOption}
               />
             )}
-            {selectedEndingTier && (
+            {selectedEndingId && endScreenById(selectedEndingId) && (
               <EndingSettings
-                tier={tiers.find((t) => t.id === selectedEndingTier)!}
-                es={endScreenFor(selectedEndingTier)}
-                update={(patch) => updateEndScreen(selectedEndingTier, patch)}
+                es={endScreenById(selectedEndingId)!}
+                update={(patch) => updateEndScreen(selectedEndingId, patch)}
+                onDelete={
+                  endScreens.length > 1
+                    ? () => removeEndScreen(selectedEndingId)
+                    : undefined
+                }
               />
             )}
-            {!selectedStep && !selectedEndingTier && (
+            {!selectedStep && !selectedEndingId && (
               <div className="mt-10 text-center text-sm text-[var(--text2)]">
                 Selecione uma pergunta ou tela final à esquerda para editar.
               </div>
@@ -851,7 +922,7 @@ export function FormEditor({
 function StepPreview({
   eyebrow,
   step,
-  endingTier,
+  endingId,
   endScreen,
   onUpdateOption,
   onRemoveOption,
@@ -859,7 +930,7 @@ function StepPreview({
 }: {
   eyebrow: string;
   step: (Field & { _key: string }) | null;
-  endingTier: string | null;
+  endingId: string | null;
   endScreen: EndScreen | null;
   onUpdateOption: (key: string, idx: number, patch: Partial<Option>) => void;
   onRemoveOption: (key: string, idx: number) => void;
@@ -872,7 +943,7 @@ function StepPreview({
     borderRadius: "var(--form-radius)",
   } as React.CSSProperties;
 
-  if (endingTier && endScreen) {
+  if (endingId && endScreen) {
     return (
       <div className="w-full text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)]">
@@ -1011,6 +1082,7 @@ function StepPreview({
 function StepSettings({
   step,
   steps,
+  endScreens,
   maxScore,
   updateStep,
   changeType,
@@ -1022,6 +1094,7 @@ function StepSettings({
 }: {
   step: Field & { _key: string };
   steps: (Field & { _key: string })[];
+  endScreens: EndScreen[];
   maxScore: number;
   updateStep: (k: string, p: Partial<Field & { _key: string }>) => void;
   changeType: (k: string, t: FieldType) => void;
@@ -1173,7 +1246,12 @@ function StepSettings({
                               Ir para: {t.title || t.id}
                             </option>
                           ))}
-                        <option value={END_STEP}>Encerrar (tela final)</option>
+                        {endScreens.map((es) => (
+                          <option key={es.id} value={`${END_PREFIX}${es.id}`}>
+                            Encerrar em: {es.name}
+                          </option>
+                        ))}
+                        <option value={END_STEP}>Encerrar (por score/padrão)</option>
                       </select>
                     </div>
                   )}
@@ -1195,20 +1273,37 @@ function StepSettings({
 }
 
 function EndingSettings({
-  tier,
   es,
   update,
+  onDelete,
 }: {
-  tier: Tier;
   es: EndScreen;
   update: (p: Partial<EndScreen>) => void;
+  onDelete?: () => void;
 }) {
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="h-3 w-3 rounded-full" style={{ background: tier.color }} />
-        <span className="font-bold text-[var(--text)]">Tela final · {tier.name}</span>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <span className="lbl">Tela final</span>
+        {onDelete && (
+          <button
+            onClick={onDelete}
+            className="text-[var(--text3)] hover:text-[var(--red)]"
+            aria-label="Excluir tela final"
+            title="Excluir"
+          >
+            🗑
+          </button>
+        )}
       </div>
+      <FieldRow label="Nome (interno)">
+        <input
+          className={inputCls}
+          value={es.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="Ex.: Qualificado, Fora do perfil…"
+        />
+      </FieldRow>
       <FieldRow label="Título">
         <input
           className={inputCls}

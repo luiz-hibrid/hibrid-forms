@@ -62,11 +62,15 @@ export interface Tier {
   minPct: number;
   /** cor de referência para dashboards/admin */
   color: string;
+  /** tela final exibida quando o lead cai nesta faixa (id do EndScreen) */
+  endScreenId?: string;
 }
 
 export interface EndScreen {
-  /** faixa (tier.id) que dispara esta tela */
-  tier: string;
+  /** identificador estável da tela final */
+  id: string;
+  /** nome exibido no editor */
+  name: string;
   title: string;
   message: string;
   ctaLabel?: string;
@@ -115,6 +119,8 @@ export interface FormConfig {
   steps: Field[];
   tiers: Tier[];
   endScreens: EndScreen[];
+  /** tela final usada quando não há rota explícita nem faixa aplicável */
+  defaultEndScreenId?: string;
   /** rastreamento/conversão por formulário */
   pixel?: PixelConfig;
   /** personalização visual do formulário */

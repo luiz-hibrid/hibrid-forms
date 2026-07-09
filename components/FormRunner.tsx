@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Field, FormConfig } from "@/lib/types";
+import type { Field, FormConfig, EndScreen as EndScreenType } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
-import { computeScore, resolveTier } from "@/lib/scoring";
+import { computeScore, scorePct } from "@/lib/scoring";
+import { normalizeEnds, resolveEndScreen, END_PREFIX } from "@/lib/ends";
 import { MediaView } from "@/components/MediaView";
 
 type Answers = Record<string, string | string[]>;
+type NextTarget = { kind: "step"; index: number } | { kind: "end"; endId?: string };
 
 const TRACKING_KEYS = [
   "utm_source",
@@ -52,6 +54,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [resolvedEnd, setResolvedEnd] = useState<EndScreenType | null>(null);
   const trackingRef = useRef<Record<string, string>>({});
   const startedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -76,20 +79,28 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const step = form.steps[index];
   const progress = Math.round(((index + (done ? 1 : 0)) / total) * 100);
 
-  // Resolve o índice de destino a partir de uma opção (fluxo condicional)
-  function nextIndexFromOption(opt?: { next?: string }): number | "end" {
-    if (!opt?.next) return index + 1;
-    if (opt.next === END_STEP) return "end";
+  const ends = useMemo(() => normalizeEnds(form), [form]);
+
+  // Resolve o destino a partir de uma opção (fluxo condicional / tela final)
+  function targetFromOption(opt?: { next?: string }): NextTarget {
+    if (!opt?.next) return { kind: "step", index: index + 1 };
+    if (opt.next === END_STEP) return { kind: "end" };
+    if (opt.next.startsWith(END_PREFIX))
+      return { kind: "end", endId: opt.next.slice(END_PREFIX.length) };
     const i = form.steps.findIndex((s) => s.id === opt.next);
-    return i >= 0 ? i : index + 1;
+    return i >= 0 ? { kind: "step", index: i } : { kind: "step", index: index + 1 };
   }
 
-  function goTo(target: number | "end", finalAnswers?: Answers) {
-    if (target === "end" || target >= total) {
+  function goTarget(t: NextTarget, finalAnswers?: Answers) {
+    if (t.kind === "end") {
+      finish(finalAnswers, t.endId);
+      return;
+    }
+    if (t.index >= total) {
       finish(finalAnswers);
       return;
     }
-    setHistory((prev) => [...prev, target]);
+    setHistory((prev) => [...prev, t.index]);
   }
 
   // Captura parâmetros de tracking da URL (utm, gclid, fbclid)
@@ -126,14 +137,6 @@ export function FormRunner({ form }: { form: FormConfig }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, step.type]);
 
-  const result = useMemo(() => {
-    const score = computeScore(form, answers);
-    const tier = resolveTier(form, score);
-    const screen =
-      form.endScreens.find((s) => s.tier === tier.id) ?? form.endScreens[0];
-    return { score, tier, screen };
-  }, [answers, form]);
-
   function setAnswer(id: string, value: string | string[]) {
     setAnswers((prev) => ({ ...prev, [id]: value }));
     setError(null);
@@ -162,19 +165,26 @@ export function FormRunner({ form }: { form: FormConfig }) {
       setError(err);
       return;
     }
-    goTo(index + 1);
+    goTarget({ kind: "step", index: index + 1 });
   }
 
   function goBack() {
     if (history.length > 1) setHistory((prev) => prev.slice(0, -1));
   }
 
-  async function finish(finalAnswers: Answers = answers) {
+  async function finish(finalAnswers: Answers = answers, forcedEndId?: string) {
     setSubmitting(true);
     const score = computeScore(form, finalAnswers);
-    const tier = resolveTier(form, score);
-    const screen = form.endScreens.find((s) => s.tier === tier.id);
+    const pct = scorePct(form, score);
+    const sortedTiers = [...ends.tiers].sort((a, b) => b.minPct - a.minPct);
+    const tier =
+      sortedTiers.find((t) => pct >= t.minPct) ??
+      sortedTiers[sortedTiers.length - 1] ??
+      null;
+    const tierId = tier?.id ?? null;
+    const screen = resolveEndScreen(ends, { forcedEndId, scorePct: pct });
     const qualified = !!screen?.qualified;
+    setResolvedEnd(screen);
     const eventId = newEventId();
 
     // Dispara eventos client-side (mesmo event_id do server p/ deduplicar)
@@ -189,7 +199,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
           w.fbq("trackCustom", "LeadQualificado", { value: score }, { eventID: eventId });
       }
       if (w.gtag) {
-        w.gtag("event", "generate_lead", { value: score, tier: tier.id });
+        w.gtag("event", "generate_lead", { value: score, tier: tierId });
       }
     } catch {}
 
@@ -198,7 +208,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
       status: "complete" as const,
       answers: finalAnswers,
       score,
-      tier: tier.id,
+      tier: tierId,
       qualified,
       tracking: trackingRef.current,
       pixel_event: {
@@ -228,15 +238,15 @@ export function FormRunner({ form }: { form: FormConfig }) {
     fireStart();
     const next = { ...answers, [field.id]: value };
     const opt = field.options?.find((o) => o.value === value);
-    const target = nextIndexFromOption(opt);
+    const target = targetFromOption(opt);
     setAnswer(field.id, value);
     setTimeout(() => {
-      goTo(target, next); // usa as respostas já com a última seleção
+      goTarget(target, next); // usa as respostas já com a última seleção
     }, 260);
   }
 
   if (done) {
-    return <EndScreen result={result} answers={answers} />;
+    return <EndScreen screen={resolvedEnd} answers={answers} />;
   }
 
   return (
@@ -514,29 +524,18 @@ function PrimaryButton({
 // Tela final (condicional por faixa)
 // ============================================================
 function EndScreen({
-  result,
+  screen,
   answers,
 }: {
-  result: {
-    score: number;
-    tier: { id: string; name: string; color: string };
-    screen: {
-      title: string;
-      message: string;
-      ctaLabel?: string;
-      ctaHref?: string;
-      qualified?: boolean;
-    };
-  };
+  screen: EndScreenType | null;
   answers: Answers;
 }) {
-  const { screen, tier } = result;
   const rawName =
     typeof answers["nome"] === "string" ? (answers["nome"] as string) : "";
   const firstName = rawName.trim().split(" ")[0] || "";
-  const title = screen.title.replace(/\{nome\}/g, firstName);
-  const message = screen.message.replace(/\{nome\}/g, firstName);
-  const isHot = tier.id === "quente";
+  const title = (screen?.title ?? "Obrigado!").replace(/\{nome\}/g, firstName);
+  const message = (screen?.message ?? "").replace(/\{nome\}/g, firstName);
+  const isHot = !!screen?.qualified;
 
   return (
     <div className="flex-1 flex items-center justify-center px-5 pb-16 pt-6">
@@ -570,7 +569,7 @@ function EndScreen({
           {message}
         </p>
 
-        {screen.ctaLabel && screen.ctaHref && (
+        {screen?.ctaLabel && screen?.ctaHref && (
           <a
             href={screen.ctaHref}
             className="group mt-8 inline-flex items-center gap-2 px-7 py-3.5 text-[0.95rem] font-bold transition-all duration-200 hover:-translate-y-[1px] hover:brightness-95"
