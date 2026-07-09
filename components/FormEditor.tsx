@@ -71,6 +71,22 @@ function ColorIcon({ type, size = 24 }: { type: FieldType; size?: number }) {
   );
 }
 
+// Tile da lista de perguntas: ícone colorido com o número DENTRO (estilo Yay)
+function QuestionTile({ type, n }: { type: FieldType; n: number }) {
+  const m = TYPE_META[type];
+  return (
+    <span
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+      style={{ background: m.color }}
+    >
+      <span className="absolute left-1 top-0.5 text-[0.52rem] font-bold leading-none text-white/85">
+        {n}
+      </span>
+      <span style={{ fontSize: 16 }}>{m.icon}</span>
+    </span>
+  );
+}
+
 function genId(prefix = "campo") {
   return `${prefix}_${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -112,6 +128,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     (cfg.steps ?? [])[0] ? "step:0" : ""
   );
   const [addOpen, setAddOpen] = useState(false);
+  const [dragKey, setDragKey] = useState<string | null>(null);
   const addBtnRef = useRef<HTMLButtonElement>(null);
   const [addPos, setAddPos] = useState<{ top: number; left: number } | null>(null);
   function toggleAdd() {
@@ -177,6 +194,17 @@ export function FormEditor({ initial }: { initial: FormRow }) {
       if (i < 0 || j < 0 || j >= prev.length) return prev;
       const copy = [...prev];
       [copy[i], copy[j]] = [copy[j], copy[i]];
+      return copy;
+    });
+  }
+  function reorderSteps(fromKey: string, toKey: string) {
+    setSteps((prev) => {
+      const from = prev.findIndex((s) => s._key === fromKey);
+      const to = prev.findIndex((s) => s._key === toKey);
+      if (from < 0 || to < 0 || from === to) return prev;
+      const copy = [...prev];
+      const [moved] = copy.splice(from, 1);
+      copy.splice(to, 0, moved);
       return copy;
     });
   }
@@ -399,23 +427,35 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                 <ListLabel>Perguntas</ListLabel>
                 <div className="grid gap-1.5">
                   {steps.map((s, i) => (
-                    <button
+                    <div
                       key={s._key}
+                      draggable
+                      onDragStart={() => setDragKey(s._key)}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={() => {
+                        if (dragKey) reorderSteps(dragKey, s._key);
+                        setDragKey(null);
+                      }}
+                      onDragEnd={() => setDragKey(null)}
                       onClick={() => setSelected(`step:${s._key}`)}
-                      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                      className={`group flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition ${
                         selected === `step:${s._key}`
                           ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
                           : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
-                      }`}
+                      } ${dragKey === s._key ? "opacity-40" : ""}`}
                     >
-                      <ColorIcon type={s.type} size={28} />
-                      <span className="mono text-[0.62rem] text-[var(--text3)]">
-                        {i + 1}
-                      </span>
-                      <span className="flex-1 truncate text-[var(--text)]">
+                      <QuestionTile type={s.type} n={i + 1} />
+                      <span className="min-w-0 flex-1 truncate text-[var(--text)]">
                         {s.title || "(sem título)"}
                       </span>
-                    </button>
+                      <span
+                        className="shrink-0 cursor-grab select-none px-0.5 text-[var(--text3)] opacity-0 transition group-hover:opacity-100"
+                        aria-hidden
+                        title="Arraste para reordenar"
+                      >
+                        ⠿
+                      </span>
+                    </div>
                   ))}
                 </div>
 

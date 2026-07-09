@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 export function Logo({
   className = "",
   height = 26,
@@ -5,13 +6,13 @@ export function Logo({
   className?: string;
   height?: number;
 }) {
-  // Wordmark "hibrid" — recriado em texto com a fonte da marca.
+  // Logo oficial da Hibrid (arquivo em /public/logo-hibrid.png)
   return (
-    <span
-      className={`inline-block font-black lowercase tracking-tight ${className}`}
-      style={{ fontSize: height, lineHeight: 1, letterSpacing: "-0.04em" }}
-    >
-      hibrid
-    </span>
+    <img
+      src="/logo-hibrid.png"
+      alt="hibrid"
+      style={{ height, width: "auto", display: "block" }}
+      className={className}
+    />
   );
 }
