@@ -51,6 +51,19 @@ export interface EndScreen {
   qualified?: boolean;
 }
 
+export interface PixelConfig {
+  /** Meta Pixel ID (client-side) */
+  metaPixelId?: string;
+  /** Meta Conversions API — token de acesso (server-side) */
+  metaCapiToken?: string;
+  /** Código de teste de eventos da Meta (opcional, para depurar) */
+  metaTestCode?: string;
+  /** Google Analytics 4 — Measurement ID (G-XXXX) */
+  ga4Id?: string;
+  /** GA4 Measurement Protocol — API secret (server-side) */
+  ga4ApiSecret?: string;
+}
+
 export interface FormConfig {
   slug: string;
   name: string;
@@ -59,4 +72,6 @@ export interface FormConfig {
   steps: Field[];
   tiers: Tier[];
   endScreens: EndScreen[];
+  /** rastreamento/conversão por formulário */
+  pixel?: PixelConfig;
 }

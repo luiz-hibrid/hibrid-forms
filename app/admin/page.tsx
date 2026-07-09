@@ -2,9 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { Logo } from "@/components/Logo";
 import { TierBadge } from "@/components/TierBadge";
-import { LogoutButton } from "@/components/LogoutButton";
+import { AdminHeader } from "@/components/AdminHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -187,13 +186,7 @@ export default async function AdminPage({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 py-4 sm:px-8">
-        <div className="flex items-center gap-3">
-          <Logo height={22} />
-          <span className="lbl">Leads</span>
-        </div>
-        <LogoutButton />
-      </header>
+      <AdminHeader active="leads" />
       <div className="mx-auto max-w-[1100px] px-5 py-8 sm:px-8">{children}</div>
     </main>
   );

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getFormBySlug } from "@/lib/forms-db";
 import { FormRunner } from "@/components/FormRunner";
+import { PixelInit } from "@/components/PixelInit";
 import { Logo } from "@/components/Logo";
 
 export const dynamic = "force-dynamic";
@@ -24,13 +25,22 @@ export default async function FormPage({
   const form = await getFormBySlug(params.slug);
   if (!form) notFound();
 
+  // Protege segredos: só IDs públicos vão para o client.
+  const metaPixelId = form.pixel?.metaPixelId;
+  const ga4Id = form.pixel?.ga4Id;
+  const clientForm = {
+    ...form,
+    pixel: { metaPixelId, ga4Id },
+  };
+
   return (
     <main className="min-h-screen bg-[var(--bg)] flex flex-col">
+      <PixelInit metaPixelId={metaPixelId} ga4Id={ga4Id} />
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
         <Logo height={24} />
         <span className="lbl">Ferramenta Hibrid</span>
       </header>
-      <FormRunner form={form} />
+      <FormRunner form={clientForm} />
     </main>
   );
 }

@@ -29,6 +29,19 @@ function isValidEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+function getCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : "";
+}
+
+function newEventId(): string {
+  try {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  } catch {}
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export function FormRunner({ form }: { form: FormConfig }) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
@@ -111,18 +124,45 @@ export function FormRunner({ form }: { form: FormConfig }) {
     const score = computeScore(form, finalAnswers);
     const tier = resolveTier(form, score);
     const screen = form.endScreens.find((s) => s.tier === tier.id);
+    const qualified = !!screen?.qualified;
+    const eventId = newEventId();
+
+    // Dispara eventos client-side (mesmo event_id do server p/ deduplicar)
+    const w = window as unknown as {
+      fbq?: (...a: unknown[]) => void;
+      gtag?: (...a: unknown[]) => void;
+    };
+    try {
+      if (w.fbq) {
+        w.fbq("track", "Lead", { value: score }, { eventID: eventId });
+        if (qualified)
+          w.fbq("trackCustom", "LeadQualificado", { value: score }, { eventID: eventId });
+      }
+      if (w.gtag) {
+        w.gtag("event", "generate_lead", { value: score, tier: tier.id });
+      }
+    } catch {}
+
     const payload = {
       form: { slug: form.slug, name: form.name },
       status: "complete" as const,
       answers: finalAnswers,
       score,
       tier: tier.id,
-      qualified: !!screen?.qualified,
+      qualified,
       tracking: trackingRef.current,
+      pixel_event: {
+        event_id: eventId,
+        fbp: getCookie("_fbp"),
+        fbc: getCookie("_fbc"),
+        ga: getCookie("_ga"),
+        event_source_url:
+          typeof window !== "undefined" ? window.location.href : "",
+      },
       submitted_at: new Date().toISOString(),
     };
     // Envia sem bloquear: a tela final aparece na hora; o servidor
-    // grava no banco e dispara o webhook do CRM em segundo plano.
+    // grava no banco, dispara o webhook do CRM e os eventos server-side.
     fetch("/api/submit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

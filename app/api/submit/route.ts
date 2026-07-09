@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendToCrm, isCrmConfigured } from "@/lib/crm";
+import { getFormBySlug } from "@/lib/forms-db";
+import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -77,6 +79,39 @@ export async function POST(request: Request) {
       }
       if (!result.ok) {
         console.error("[Hibrid Forms] Falha ao enviar ao CRM:", result.error);
+      }
+    }
+
+    // Eventos server-side (Meta CAPI + GA4 MP) — usa a config de pixel do form
+    const pe = body?.pixel_event ?? {};
+    if (pe.event_id) {
+      const fullForm = await getFormBySlug(row.form_slug);
+      const pixel = fullForm?.pixel;
+      if (pixel && (pixel.metaCapiToken || pixel.ga4ApiSecret)) {
+        const ip =
+          request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+          request.headers.get("x-real-ip") ||
+          undefined;
+        const ua = request.headers.get("user-agent") || undefined;
+        await Promise.allSettled([
+          sendMetaCapi(pixel, {
+            eventId: pe.event_id,
+            email: row.email,
+            phone: row.telefone,
+            fbp: pe.fbp,
+            fbc: pe.fbc,
+            ip,
+            ua,
+            sourceUrl: pe.event_source_url,
+            value: row.score,
+          }),
+          sendGa4(pixel, {
+            gaCookie: pe.ga,
+            value: row.score,
+            tier: row.tier ?? undefined,
+            eventId: pe.event_id,
+          }),
+        ]);
       }
     }
 
