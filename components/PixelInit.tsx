@@ -5,14 +5,25 @@ import Script from "next/script";
 // Injeta Meta Pixel e/ou GA4 (client-side). Só os IDs públicos chegam aqui —
 // tokens/secrets ficam no servidor.
 export function PixelInit({
+  gtmId,
   metaPixelId,
   ga4Id,
 }: {
+  gtmId?: string;
   metaPixelId?: string;
   ga4Id?: string;
 }) {
   return (
     <>
+      {gtmId && (
+        <Script id="gtm-init" strategy="afterInteractive">
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${gtmId}');`}
+        </Script>
+      )}
       {metaPixelId && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?

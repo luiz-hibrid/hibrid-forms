@@ -1799,6 +1799,29 @@ function IntegrateTab({
   return (
     <div className="mx-auto max-w-[760px] px-6 py-8">
       <IntegrationCard
+        title="Google Tag Manager"
+        desc="Recomendado. Com o container do GTM você configura GA4, Meta e Google Ads (incl. Enhanced Conversions / Advanced Match) sem código — nós empurramos os dados no dataLayer."
+        color="#4285f4"
+        icon="T"
+      >
+        <FieldRow label="Container ID">
+          <input
+            className={inputCls}
+            value={pixel.gtmId ?? ""}
+            onChange={(e) => updatePixel({ gtmId: e.target.value })}
+            placeholder="GTM-XXXXXXX"
+          />
+        </FieldRow>
+        <EventsNote
+          items={[
+            ["form_view", "ao abrir o formulário"],
+            ["form_start", "quando a pessoa começa"],
+            ["generate_lead", "ao concluir (com value, gclid, event_id e user_data para Enhanced Conversions)"],
+          ]}
+        />
+      </IntegrationCard>
+
+      <IntegrationCard
         title="Meta / Facebook Pixel"
         desc="Adicione o Pixel ID e o token da Conversions API para rastrear e otimizar suas campanhas."
         color="#1877f2"

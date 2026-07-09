@@ -69,10 +69,18 @@ export function FormRunner({ form }: { form: FormConfig }) {
       }).catch(() => {});
     } catch {}
   }
+  function pushDL(obj: Record<string, unknown>) {
+    try {
+      const w = window as unknown as { dataLayer?: unknown[] };
+      w.dataLayer = w.dataLayer || [];
+      w.dataLayer.push(obj);
+    } catch {}
+  }
   function fireStart() {
     if (startedRef.current) return;
     startedRef.current = true;
     track("start");
+    pushDL({ event: "form_start", form_slug: form.slug });
   }
 
   const total = form.steps.length;
@@ -113,6 +121,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
     }
     trackingRef.current = t;
     track("view");
+    pushDL({ event: "form_view", form_slug: form.slug });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -202,6 +211,33 @@ export function FormRunner({ form }: { form: FormConfig }) {
         w.gtag("event", "generate_lead", { value: score, tier: tierId });
       }
     } catch {}
+
+    // dataLayer rico para o GTM (GA4 EC, Meta AM, Google Ads EC)
+    const leadEmail = (finalAnswers["email"] as string) || "";
+    const leadPhone = (finalAnswers["telefone"] as string) || "";
+    const leadName = (finalAnswers["nome"] as string) || "";
+    pushDL({
+      event: "generate_lead",
+      form_slug: form.slug,
+      form_name: form.name,
+      value: score,
+      currency: "BRL",
+      tier: tierId,
+      qualified,
+      event_id: eventId,
+      gclid: trackingRef.current.gclid,
+      fbclid: trackingRef.current.fbclid,
+      utm_source: trackingRef.current.utm_source,
+      utm_medium: trackingRef.current.utm_medium,
+      utm_campaign: trackingRef.current.utm_campaign,
+      lead: { email: leadEmail, phone: leadPhone, name: leadName },
+      // user_data no formato esperado pelas Enhanced Conversions (GTM faz o hash)
+      user_data: {
+        email_address: leadEmail,
+        phone_number: leadPhone,
+        address: { first_name: leadName.split(" ")[0] || undefined },
+      },
+    });
 
     const payload = {
       form: { slug: form.slug, name: form.name },

@@ -80,6 +80,8 @@ export interface EndScreen {
 }
 
 export interface PixelConfig {
+  /** Google Tag Manager — container ID (GTM-XXXX) */
+  gtmId?: string;
   /** Meta Pixel ID (client-side) */
   metaPixelId?: string;
   /** Meta Conversions API — token de acesso (server-side) */

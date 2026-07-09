@@ -26,11 +26,12 @@ export default async function FormPage({
   if (!form) notFound();
 
   // Protege segredos: só IDs públicos vão para o client.
+  const gtmId = form.pixel?.gtmId;
   const metaPixelId = form.pixel?.metaPixelId;
   const ga4Id = form.pixel?.ga4Id;
   const clientForm = {
     ...form,
-    pixel: { metaPixelId, ga4Id },
+    pixel: { gtmId, metaPixelId, ga4Id },
   };
 
   const style = {
@@ -41,7 +42,17 @@ export default async function FormPage({
 
   return (
     <main className="min-h-screen flex flex-col" style={style}>
-      <PixelInit metaPixelId={metaPixelId} ga4Id={ga4Id} />
+      {gtmId && (
+        <noscript>
+          <iframe
+            src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+      )}
+      <PixelInit gtmId={gtmId} metaPixelId={metaPixelId} ga4Id={ga4Id} />
       <FormRunner form={clientForm} />
     </main>
   );
