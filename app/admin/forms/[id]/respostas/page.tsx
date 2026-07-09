@@ -35,7 +35,7 @@ export default async function ResultsPage({
   const { data: subs } = await sb
     .from("submissions")
     .select(
-      "id,nome,email,telefone,answers,score,tier,status,stage,created_at"
+      "id,nome,email,telefone,answers,score,tier,status,stage,labels,created_at,updated_at"
     )
     .eq("form_slug", form.slug)
     .order("created_at", { ascending: false })

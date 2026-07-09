@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Field } from "@/lib/types";
 import { TierBadge } from "@/components/TierBadge";
-import { FieldTypeIcon } from "@/components/FieldTypeIcon";
+import { FieldTypeIcon, FIELD_META } from "@/components/FieldTypeIcon";
 
 interface Submission {
   id: string;
@@ -17,7 +17,25 @@ interface Submission {
   tier: string | null;
   status: string;
   stage: string;
+  labels: string[];
   created_at: string;
+  updated_at: string;
+}
+
+function relativeTime(iso: string): string {
+  try {
+    const diff = Date.now() - new Date(iso).getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return "agora";
+    if (min < 60) return `há ${min} min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `há ${h} h`;
+    const d = Math.floor(h / 24);
+    if (d < 30) return `há ${d} d`;
+    return fmtDate(iso);
+  } catch {
+    return iso;
+  }
 }
 interface Column {
   id: string;
@@ -102,6 +120,7 @@ export function ResultsView({
       {tab === "kanban" && (
         <Kanban
           formId={formId}
+          steps={steps}
           initialColumns={kanbanColumns}
           submissions={submissions}
           onRefresh={() => router.refresh()}
@@ -249,7 +268,8 @@ function Responses({
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm [&_td]:border-r [&_td]:border-[var(--border)] [&_th]:border-r [&_th]:border-[var(--border)] [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0">
+
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--bg)] text-left">
               <Th>
@@ -318,11 +338,13 @@ function Responses({
 // ---------------------------------------------------------------- Kanban
 function Kanban({
   formId,
+  steps,
   initialColumns,
   submissions,
   onRefresh,
 }: {
   formId: string;
+  steps: Field[];
   initialColumns: Column[];
   submissions: Submission[];
   onRefresh: () => void;
@@ -330,6 +352,17 @@ function Kanban({
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const [cards, setCards] = useState<Submission[]>(submissions);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = cards.find((c) => c.id === selectedId) ?? null;
+
+  async function updateLabels(id: string, labels: string[]) {
+    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, labels } : c)));
+    await fetch(`/api/admin/submissions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ labels }),
+    });
+  }
 
   const firstCol = columns[0]?.id ?? "nao_iniciado";
   function colOf(s: Submission): string {
@@ -418,13 +451,13 @@ function Kanban({
                   </div>
                 )}
                 {colCards.map((c) => (
-                  <Link
+                  <div
                     key={c.id}
-                    href={`/admin/${c.id}`}
                     draggable
                     onDragStart={() => setDragId(c.id)}
                     onDragEnd={() => setDragId(null)}
-                    className={`block cursor-grab rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 transition hover:border-[#bbb] ${
+                    onClick={() => setSelectedId(c.id)}
+                    className={`block cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 transition hover:border-[#bbb] ${
                       dragId === c.id ? "opacity-40" : ""
                     }`}
                   >
@@ -435,13 +468,195 @@ function Kanban({
                     <div className="mono mt-1 truncate text-[0.7rem] text-[var(--text3)]">
                       {c.email || c.telefone || "—"}
                     </div>
-                  </Link>
+                    {c.labels?.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {c.labels.map((l) => (
+                          <span key={l} className="mono rounded bg-[var(--bg)] px-1.5 py-0.5 text-[0.55rem] text-[var(--text2)]">
+                            {l}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
           );
         })}
       </div>
+
+      {selected && (
+        <LeadModal
+          submission={selected}
+          steps={steps}
+          columns={columns}
+          onClose={() => setSelectedId(null)}
+          onStage={(stage) => moveCard(selected.id, stage)}
+          onLabels={(labels) => updateLabels(selected.id, labels)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Modal do lead
+function LeadModal({
+  submission,
+  steps,
+  columns,
+  onClose,
+  onStage,
+  onLabels,
+}: {
+  submission: Submission;
+  steps: Field[];
+  columns: Column[];
+  onClose: () => void;
+  onStage: (stage: string) => void;
+  onLabels: (labels: string[]) => void;
+}) {
+  const [labelInput, setLabelInput] = useState("");
+  const answered = steps.filter((s) => hasAnswer(submission.answers?.[s.id]));
+
+  function addLabel() {
+    const v = labelInput.trim();
+    if (!v || submission.labels.includes(v)) return;
+    onLabels([...submission.labels, v]);
+    setLabelInput("");
+  }
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
+          <span className="mono text-[0.62rem] uppercase tracking-wider text-[var(--text2)]">
+            Detalhes da resposta · #{submission.id.slice(0, 12).toUpperCase()}
+          </span>
+          <button onClick={onClose} className="text-[var(--text3)] hover:text-[var(--text)]">✕</button>
+        </div>
+
+        <div className="grid flex-1 gap-5 overflow-y-auto p-5 md:grid-cols-[1fr_300px]">
+          {/* Campos */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="lbl">Campos da resposta</span>
+              <span className="mono rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.62rem] text-[var(--text2)]">
+                {steps.length}
+              </span>
+            </div>
+            <div className="divide-y divide-[var(--border)]">
+              {steps.map((s, i) => (
+                <div key={s.id} className="flex items-start gap-3 py-3">
+                  <NumberedIcon type={s.type} n={i + 1} />
+                  <div className="min-w-0">
+                    <div className="font-medium text-[var(--text)]">{s.title}</div>
+                    <div className="mt-0.5 text-[var(--text2)]">
+                      {answerText(s, submission.answers?.[s.id])}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <div className="flex items-center gap-2 py-3">
+                <span className="mono rounded bg-[rgba(194,251,141,0.25)] px-2 py-1 text-[0.62rem] font-bold text-[#3d7a00]">
+                  # score
+                </span>
+                <span className="text-[var(--text2)]">{submission.score}</span>
+                <TierBadge tier={submission.tier} />
+              </div>
+            </div>
+          </div>
+
+          {/* Propriedades + Labels */}
+          <div className="space-y-4">
+            <div className="rounded-xl border border-[var(--border)] p-4">
+              <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+                Propriedades
+              </div>
+              <Row label="Status">
+                <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+                  {submission.status === "complete" ? "Completa" : "Parcial"}
+                </span>
+              </Row>
+              <Row label="Estágio">
+                <select
+                  value={columns.some((c) => c.id === submission.stage) ? submission.stage : columns[0]?.id}
+                  onChange={(e) => onStage(e.target.value)}
+                  className="rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-sm"
+                >
+                  {columns.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </Row>
+              <Row label="Enviado">
+                <span className="text-sm text-[var(--text2)]">{relativeTime(submission.created_at)}</span>
+              </Row>
+              <Row label="Atualizado">
+                <span className="text-sm text-[var(--text2)]">{relativeTime(submission.updated_at)}</span>
+              </Row>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] p-4">
+              <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+                Labels
+              </div>
+              <input
+                value={labelInput}
+                onChange={(e) => setLabelInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addLabel();
+                  }
+                }}
+                placeholder="Digite e pressione Enter"
+                className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none focus:border-[var(--acc2)]"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {submission.labels.length === 0 && (
+                  <span className="text-sm text-[var(--text3)]">Nenhum ainda</span>
+                )}
+                {submission.labels.map((l) => (
+                  <span key={l} className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] px-2.5 py-1 text-xs text-[var(--text2)]">
+                    {l}
+                    <button
+                      onClick={() => onLabels(submission.labels.filter((x) => x !== l))}
+                      className="text-[var(--text3)] hover:text-[var(--red)]"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NumberedIcon({ type, n }: { type: Field["type"]; n: number }) {
+  const m = FIELD_META[type] ?? FIELD_META.text;
+  return (
+    <span
+      className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white"
+      style={{ background: m.color }}
+    >
+      <span className="absolute left-1 top-0.5 text-[0.52rem] font-bold leading-none text-white/85">{n}</span>
+      <span style={{ fontSize: 15 }}>{m.icon}</span>
+    </span>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-2.5 flex items-center justify-between gap-3 last:mb-0">
+      <span className="text-sm text-[var(--text2)]">{label}</span>
+      {children}
     </div>
   );
 }

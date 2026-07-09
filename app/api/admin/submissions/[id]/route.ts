@@ -16,8 +16,10 @@ export async function PATCH(
   const body = await request.json().catch(() => ({}));
   const patch: Record<string, unknown> = {};
   if (typeof body.stage === "string") patch.stage = body.stage;
+  if (Array.isArray(body.labels)) patch.labels = body.labels;
   if (Object.keys(patch).length === 0)
     return NextResponse.json({ ok: false }, { status: 400 });
+  patch.updated_at = new Date().toISOString();
 
   const { error } = await sb.from("submissions").update(patch).eq("id", params.id);
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
