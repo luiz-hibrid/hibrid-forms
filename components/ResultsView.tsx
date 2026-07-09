@@ -397,6 +397,16 @@ function Kanban({
       body: JSON.stringify({ columns: next }),
     });
   }
+  function setColumnName(id: string, name: string) {
+    setColumns((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
+  }
+  async function persistColumns() {
+    await fetch(`/api/admin/forms/${formId}/kanban`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ columns }),
+    });
+  }
 
   async function moveCard(id: string, stage: string) {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
@@ -449,20 +459,32 @@ function Kanban({
               }}
               className="flex max-h-[75vh] w-[310px] shrink-0 flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3"
             >
-              <div className="mb-3 flex items-center justify-between">
-                <button
-                  onDoubleClick={() => renameColumn(col.id)}
-                  className="mono text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text2)]"
-                  title="Dois cliques para renomear"
-                >
-                  {col.name}
-                </button>
-                <div className="flex items-center gap-2">
-                  <span className="mono rounded bg-[var(--card)] px-2 py-0.5 text-[0.62rem] text-[var(--text2)]">
-                    {colCards.length}
-                  </span>
-                  <button onClick={() => removeColumn(col.id)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Remover coluna">⋯</button>
-                </div>
+              <div className="mb-3 flex items-center gap-2">
+                <input
+                  value={col.name}
+                  onChange={(e) => setColumnName(col.id, e.target.value)}
+                  onBlur={() => persistColumns()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") e.currentTarget.blur();
+                  }}
+                  className="mono min-w-0 flex-1 rounded bg-transparent px-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text2)] outline-none hover:bg-[var(--bg)] focus:bg-[var(--bg)]"
+                  title="Clique para renomear"
+                />
+                <span className="inline-flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-md bg-[var(--text)] px-1.5 text-xs font-bold text-white">
+                  {colCards.length}
+                </span>
+                {columns.length > 1 && (
+                  <button
+                    onClick={() => removeColumn(col.id)}
+                    className="shrink-0 text-[var(--text3)] transition hover:text-[var(--red)]"
+                    aria-label="Excluir coluna"
+                    title="Excluir coluna"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
                 {colCards.length === 0 && (
