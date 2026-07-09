@@ -51,6 +51,20 @@ const TYPE_META: Record<
   welcome: { label: "Tela de boas-vindas", color: "#9b6dff", icon: "👋" },
 };
 
+// Título/placeholder padrão ao criar cada tipo de campo
+const TYPE_DEFAULTS: Partial<
+  Record<FieldType, { title: string; placeholder?: string }>
+> = {
+  name: { title: "Qual é o seu nome?", placeholder: "Seu nome" },
+  email: { title: "Qual é o seu e-mail?", placeholder: "voce@email.com" },
+  tel: { title: "Qual o seu WhatsApp?", placeholder: "(11) 99999-9999" },
+  link: { title: "Qual o seu site?", placeholder: "https://" },
+  text: { title: "Deixe sua mensagem", placeholder: "Escreva aqui…" },
+  single: { title: "Nova pergunta" },
+  multi: { title: "Nova pergunta" },
+  welcome: { title: "Bem-vindo!" },
+};
+
 // Menu de campos categorizado (estilo Yay)
 const ADD_CATEGORIES: { label: string; types: FieldType[] }[] = [
   { label: "Escolhas", types: ["single", "multi"] },
@@ -164,11 +178,13 @@ export function FormEditor({ initial }: { initial: FormRow }) {
   }
   function addStep(type: FieldType) {
     const key = genId("k");
+    const d = TYPE_DEFAULTS[type];
     const base: EditorField = {
       _key: key,
       id: genId(),
       type,
-      title: type === "welcome" ? "Bem-vindo!" : "Nova pergunta",
+      title: d?.title ?? "Nova pergunta",
+      ...(d?.placeholder ? { placeholder: d.placeholder } : {}),
       ...(type === "welcome" ? { buttonLabel: "Começar" } : { required: true }),
       ...(type === "single" || type === "multi"
         ? {
@@ -412,7 +428,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
       {topTab === "edit" && (
         <div className="flex flex-1 overflow-hidden">
           {/* Coluna esquerda */}
-          <aside className="w-[280px] shrink-0 overflow-y-auto border-r border-[var(--border)] bg-[var(--card)] p-3">
+          <aside className="w-[280px] shrink-0 overflow-y-auto overflow-x-hidden border-r border-[var(--border)] bg-[var(--card)] p-3">
             <div className="mb-3 flex items-center gap-1 rounded-lg bg-[var(--bg)] p-1">
               <SideTab active={leftTab === "content"} onClick={() => setLeftTab("content")}>
                 Conteúdo
@@ -438,7 +454,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                       }}
                       onDragEnd={() => setDragKey(null)}
                       onClick={() => setSelected(`step:${s._key}`)}
-                      className={`group flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-sm transition ${
+                      className={`group flex w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2 py-1.5 text-left text-sm transition ${
                         selected === `step:${s._key}`
                           ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
                           : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
