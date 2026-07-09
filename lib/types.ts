@@ -8,6 +8,7 @@ export type FieldType =
   | "name"
   | "email"
   | "tel"
+  | "link" // URL / site
   | "single" // escolha única (pontuável)
   | "multi"; // múltipla escolha
 

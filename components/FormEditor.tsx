@@ -30,6 +30,7 @@ const TYPE_LABELS: Record<FieldType, string> = {
   name: "Nome",
   email: "E-mail",
   tel: "Telefone / WhatsApp",
+  link: "Link / site",
   single: "Escolha única (pontuável)",
   multi: "Múltipla escolha (pontuável)",
 };
@@ -40,6 +41,7 @@ const TYPE_OPTIONS: FieldType[] = [
   "name",
   "email",
   "tel",
+  "link",
   "single",
   "multi",
 ];
@@ -76,6 +78,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
   const [pixel, setPixel] = useState<PixelConfig>((cfg as any).pixel ?? {});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [tab, setTab] = useState<"editor" | "opcoes">("editor");
 
   const maxScore = useMemo(() => {
     let max = 0;
@@ -254,6 +257,20 @@ export function FormEditor({ initial }: { initial: FormRow }) {
     }
   }
 
+  async function deleteForm() {
+    if (
+      !confirm(
+        `Excluir o formulário "${name}" e todas as suas respostas? Essa ação não pode ser desfeita.`
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/forms/${initial.id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) router.push("/admin/forms");
+    else alert("Não foi possível excluir.");
+  }
+
   return (
     <div className="mx-auto max-w-[820px] px-5 py-8 sm:px-8">
       {/* Barra superior */}
@@ -262,6 +279,14 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           ← Formulários
         </a>
         <div className="flex items-center gap-3">
+          <a
+            href={`/f/${slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[var(--text2)] hover:text-[var(--text)]"
+          >
+            Ver ↗
+          </a>
           <label className="flex items-center gap-2 text-sm text-[var(--text2)]">
             <input
               type="checkbox"
@@ -289,7 +314,19 @@ export function FormEditor({ initial }: { initial: FormRow }) {
         </div>
       </div>
 
-      {/* Meta */}
+      {/* Abas */}
+      <div className="mb-6 flex items-center gap-1 border-b border-[var(--border)]">
+        <TabBtn active={tab === "editor"} onClick={() => setTab("editor")}>
+          Editor
+        </TabBtn>
+        <TabBtn active={tab === "opcoes"} onClick={() => setTab("opcoes")}>
+          Opções
+        </TabBtn>
+      </div>
+
+      {/* ===================== ABA OPÇÕES ===================== */}
+      {tab === "opcoes" && (
+        <>
       <Section title="Identificação">
         <FieldRow label="Nome do formulário">
           <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} />
@@ -314,8 +351,11 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           />
         </FieldRow>
       </Section>
+        </>
+      )}
 
-      {/* Perguntas */}
+      {/* ===================== ABA EDITOR ===================== */}
+      {tab === "editor" && (
       <Section
         title="Perguntas"
         right={
@@ -362,7 +402,11 @@ export function FormEditor({ initial }: { initial: FormRow }) {
                 placeholder="Subtítulo / ajuda (opcional)"
               />
 
-              {(s.type === "text" || s.type === "name" || s.type === "email" || s.type === "tel") && (
+              {(s.type === "text" ||
+                s.type === "name" ||
+                s.type === "email" ||
+                s.type === "tel" ||
+                s.type === "link") && (
                 <input
                   className={`${inputCls} mt-2`}
                   value={s.placeholder ?? ""}
@@ -469,8 +513,11 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           + Adicionar pergunta
         </button>
       </Section>
+      )}
 
-      {/* Faixas */}
+      {/* ===================== ABA OPÇÕES (continuação) ===================== */}
+      {tab === "opcoes" && (
+        <>
       <Section title="Faixas de lead (por % do score máximo)">
         <div className="grid gap-2">
           {tiers.map((t) => (
@@ -603,7 +650,47 @@ export function FormEditor({ initial }: { initial: FormRow }) {
           </FieldRow>
         </div>
       </Section>
+
+      {/* Zona de perigo */}
+      <section className="mb-8 rounded-xl border p-5" style={{ borderColor: "rgba(255,69,69,0.4)", background: "rgba(255,69,69,0.04)" }}>
+        <h2 className="text-sm font-bold text-[var(--red)]">Zona de perigo</h2>
+        <p className="mt-1 text-[0.8rem] text-[var(--text2)]">
+          Excluir o formulário remove também todas as respostas. Não pode ser
+          desfeito.
+        </p>
+        <button
+          onClick={deleteForm}
+          className="mt-3 rounded-full border border-[var(--red)] px-4 py-2 text-sm font-medium text-[var(--red)] transition hover:bg-[var(--red)] hover:text-white"
+        >
+          Excluir formulário
+        </button>
+      </section>
+        </>
+      )}
     </div>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-bold transition ${
+        active
+          ? "border-[var(--text)] text-[var(--text)]"
+          : "border-transparent text-[var(--text3)] hover:text-[var(--text)]"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

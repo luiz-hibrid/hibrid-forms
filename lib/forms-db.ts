@@ -16,6 +16,7 @@ export interface FormListItem {
   name: string;
   published: boolean;
   steps: number;
+  responses: number;
   created_at: string;
 }
 
@@ -49,12 +50,27 @@ export async function listForms(): Promise<FormListItem[]> {
     .from("forms")
     .select("id,slug,name,published,config,created_at")
     .order("created_at", { ascending: false });
-  return (data ?? []).map((r) => ({
+
+  const forms = data ?? [];
+
+  // contagem de respostas por formulário (count exato via head)
+  const counts = await Promise.all(
+    forms.map(async (r) => {
+      const { count } = await sb
+        .from("submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("form_slug", r.slug);
+      return count ?? 0;
+    })
+  );
+
+  return forms.map((r, i) => ({
     id: r.id,
     slug: r.slug,
     name: r.name,
     published: r.published,
     steps: Array.isArray(r.config?.steps) ? r.config.steps.length : 0,
+    responses: counts[i],
     created_at: r.created_at,
   }));
 }

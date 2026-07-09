@@ -59,10 +59,11 @@ export default async function FormsPage() {
                   )}
                 </div>
                 <div className="mono mt-1 text-[11px] text-[var(--text3)]">
-                  /f/{f.slug} · {f.steps} etapas
+                  /f/{f.slug} · {f.steps} etapas ·{" "}
+                  <span className="text-[var(--text2)]">{f.responses} respostas</span>
                 </div>
               </div>
-              <div className="flex shrink-0 items-center gap-4">
+              <div className="flex shrink-0 items-center gap-3">
                 {f.published && (
                   <a
                     href={`/f/${f.slug}`}
@@ -73,6 +74,12 @@ export default async function FormsPage() {
                     abrir ↗
                   </a>
                 )}
+                <Link
+                  href={`/admin/forms/${f.id}/respostas`}
+                  className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--acc2)]"
+                >
+                  Respostas
+                </Link>
                 <Link
                   href={`/admin/forms/${f.id}`}
                   className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"

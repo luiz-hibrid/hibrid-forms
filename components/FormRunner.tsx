@@ -319,7 +319,8 @@ function StepBody({
         {(field.type === "text" ||
           field.type === "name" ||
           field.type === "email" ||
-          field.type === "tel") && (
+          field.type === "tel" ||
+          field.type === "link") && (
           <input
             ref={inputRef}
             type={
@@ -327,9 +328,17 @@ function StepBody({
                 ? "email"
                 : field.type === "tel"
                 ? "tel"
+                : field.type === "link"
+                ? "url"
                 : "text"
             }
-            inputMode={field.type === "tel" ? "numeric" : undefined}
+            inputMode={
+              field.type === "tel"
+                ? "numeric"
+                : field.type === "link"
+                ? "url"
+                : undefined
+            }
             placeholder={field.placeholder}
             value={typeof value === "string" ? value : ""}
             onChange={(e) => {

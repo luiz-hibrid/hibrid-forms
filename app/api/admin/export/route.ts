@@ -21,6 +21,7 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const tier = url.searchParams.get("tier");
+  const form = url.searchParams.get("form");
 
   const supabase = getSupabaseAdmin()!;
   let query = supabase
@@ -29,6 +30,7 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false })
     .limit(5000);
   if (tier) query = query.eq("tier", tier);
+  if (form) query = query.eq("form_slug", form);
 
   const { data, error } = await query;
   if (error) {
