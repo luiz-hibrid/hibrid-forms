@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Field, FormConfig } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
 import { computeScore, resolveTier } from "@/lib/scoring";
+import { MediaView } from "@/components/MediaView";
 
 type Answers = Record<string, string | string[]>;
 
@@ -309,6 +310,7 @@ function StepBody({
 
   return (
     <div>
+      {field.media && <MediaView media={field.media} />}
       <h1
         className="font-black leading-tight tracking-tight"
         style={{

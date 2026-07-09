@@ -10,11 +10,13 @@ import type {
   EndScreen,
   PixelConfig,
   ThemeConfig,
+  FieldMedia,
 } from "@/lib/types";
 import { END_STEP } from "@/lib/types";
 import { FONT_OPTIONS, DEFAULT_THEME, themeVars } from "@/lib/theme";
 import type { FormRow } from "@/lib/forms-db";
 import { Logo } from "@/components/Logo";
+import { MediaView } from "@/components/MediaView";
 
 // slugify local (evita importar módulo de servidor no client)
 function slugify(input: string): string {
@@ -364,6 +366,7 @@ export function FormEditor({ initial }: { initial: FormRow }) {
       if (s.placeholder) b.placeholder = s.placeholder;
       if (s.required) b.required = true;
       if (s.buttonLabel) b.buttonLabel = s.buttonLabel;
+      if (s.media?.url) b.media = s.media;
       if (s.type === "single" || s.type === "multi") {
         const seen: Record<string, boolean> = {};
         b.options = (s.options ?? []).map((o, i) => {
@@ -856,6 +859,7 @@ function StepPreview({
     step.type === "link";
   return (
     <div className="px-8 py-14">
+      {step.media && <MediaView media={step.media} />}
       {step.type !== "welcome" && eyebrow && (
         <div className="lbl mb-4">{eyebrow}</div>
       )}
@@ -981,6 +985,11 @@ function StepSettings({
           onChange={(e) => updateStep(key, { subtitle: e.target.value })}
         />
       </FieldRow>
+
+      <MediaSection
+        media={step.media}
+        onChange={(m) => updateStep(key, { media: m })}
+      />
 
       {(step.type === "text" ||
         step.type === "name" ||
@@ -1300,6 +1309,268 @@ function Segmented({
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+// =====================================================================
+// Mídia (imagem/vídeo acima da pergunta)
+// =====================================================================
+function MediaSection({
+  media,
+  onChange,
+}: {
+  media?: FieldMedia;
+  onChange: (m: FieldMedia | undefined) => void;
+}) {
+  const [modal, setModal] = useState(false);
+  const label = (
+    <span className="mono text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+      Imagem / Vídeo
+    </span>
+  );
+
+  if (!media) {
+    return (
+      <div className="mb-4 flex items-center justify-between">
+        {label}
+        <button
+          onClick={() => setModal(true)}
+          className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-bold text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+        >
+          + Adicionar
+        </button>
+        {modal && (
+          <MediaModal
+            onClose={() => setModal(false)}
+            onPick={(m) => {
+              onChange(m);
+              setModal(false);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3">
+      <div className="mb-2 flex items-center justify-between">
+        {label}
+        <button
+          onClick={() => onChange(undefined)}
+          aria-label="Remover"
+          title="Remover"
+          className="text-[var(--text3)] hover:text-[var(--red)]"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-md border border-[var(--border)] bg-[var(--card)]">
+        {media.kind === "image" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={media.url} alt="" className="max-h-28 w-full object-cover" />
+        ) : (
+          <div className="truncate p-3 text-xs text-[var(--text2)]">🎬 {media.url}</div>
+        )}
+      </div>
+
+      <div className="mt-3">
+        <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Posição</label>
+        <Segmented
+          value={media.align ?? "center"}
+          onChange={(v) => onChange({ ...media, align: v as FieldMedia["align"] })}
+          options={[
+            { value: "left", label: "⬅" },
+            { value: "center", label: "▣" },
+            { value: "right", label: "➡" },
+          ]}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Altura (px)</label>
+          <input
+            className={inputCls}
+            value={media.height ?? ""}
+            onChange={(e) => onChange({ ...media, height: e.target.value.replace(/\D/g, "") })}
+            placeholder="auto"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Largura (%)</label>
+          <input
+            className={inputCls}
+            value={media.width ?? ""}
+            onChange={(e) => onChange({ ...media, width: e.target.value.replace(/\D/g, "") })}
+            placeholder="auto"
+          />
+        </div>
+      </div>
+
+      {media.kind === "image" && (
+        <div className="mt-3">
+          <label className="mb-1 block text-[0.78rem] text-[var(--text2)]">Texto alternativo</label>
+          <input
+            className={inputCls}
+            value={media.alt ?? ""}
+            onChange={(e) => onChange({ ...media, alt: e.target.value })}
+            placeholder="Descrição da imagem"
+          />
+        </div>
+      )}
+
+      <button
+        onClick={() => setModal(true)}
+        className="mt-3 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+      >
+        Trocar mídia
+      </button>
+      {modal && (
+        <MediaModal
+          onClose={() => setModal(false)}
+          onPick={(m) => {
+            onChange({ ...m, align: media.align, width: media.width, height: media.height });
+            setModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MediaModal({
+  onClose,
+  onPick,
+}: {
+  onClose: () => void;
+  onPick: (m: FieldMedia) => void;
+}) {
+  const [tab, setTab] = useState<"upload" | "url" | "video">("upload");
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setBusy(true);
+    setErr(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok && data.url) onPick({ kind: "image", url: data.url, align: "center" });
+    else
+      setErr(
+        data.error === "arquivo_grande"
+          ? "Arquivo acima de 2MB."
+          : data.error === "tipo_invalido"
+          ? "Tipo de arquivo não suportado."
+          : "Falha no upload."
+      );
+  }
+
+  const tabs: { id: typeof tab; label: string }[] = [
+    { id: "upload", label: "Enviar imagem" },
+    { id: "url", label: "URL da imagem" },
+    { id: "video", label: "Vídeo" },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-[560px] rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <span className="mono text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+            Adicionar imagem ou vídeo
+          </span>
+          <button onClick={onClose} className="text-[var(--text3)] hover:text-[var(--text)]">
+            ✕
+          </button>
+        </div>
+
+        <div className="mb-4 flex gap-1 border-b border-[var(--border)]">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition ${
+                tab === t.id
+                  ? "border-[var(--text)] text-[var(--text)]"
+                  : "border-transparent text-[var(--text3)] hover:text-[var(--text)]"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "upload" && (
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--bg)] py-14 text-center transition hover:border-[#bbb]">
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/gif,image/svg+xml,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) upload(f);
+              }}
+            />
+            <span className="text-2xl text-[var(--text3)]">⬆</span>
+            <span className="mt-2 text-sm text-[var(--text2)]">
+              {busy ? "Enviando…" : "Selecione uma imagem (até 2MB)"}
+            </span>
+            <span className="mono mt-1 text-[0.65rem] text-[var(--text3)]">
+              png, jpg, gif, svg, webp
+            </span>
+          </label>
+        )}
+
+        {tab === "url" && (
+          <div>
+            <input
+              className={inputCls}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
+            <button
+              onClick={() => url.trim() && onPick({ kind: "image", url: url.trim(), align: "center" })}
+              className="mt-3 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--acc2)]"
+            >
+              Adicionar imagem
+            </button>
+          </div>
+        )}
+
+        {tab === "video" && (
+          <div>
+            <input
+              className={inputCls}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Link do YouTube, Vimeo ou .mp4"
+            />
+            <button
+              onClick={() => url.trim() && onPick({ kind: "video", url: url.trim(), align: "center" })}
+              className="mt-3 rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--text)] hover:bg-[var(--acc2)]"
+            >
+              Adicionar vídeo
+            </button>
+          </div>
+        )}
+
+        {err && <p className="mt-3 text-sm text-[var(--red)]">{err}</p>}
+      </div>
     </div>
   );
 }
