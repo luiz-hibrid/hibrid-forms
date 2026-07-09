@@ -1140,19 +1140,30 @@ function StepSettings({
                   </button>
                 </div>
 
-                {/* Fluxo + pontuação */}
-                <div className="mt-2 flex items-center gap-2">
-                  {step.type === "single" ? (
-                    <label className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
-                      <span className="mono shrink-0 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]">
-                        fluxo
+                {/* Pontuação + fluxo (empilhados para caber sempre) */}
+                <div className="mt-2.5 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="mono text-[0.58rem] uppercase tracking-wide text-[var(--text3)]">
+                      Pontuação
+                    </span>
+                    <input
+                      type="number"
+                      value={o.weight ?? 0}
+                      onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
+                      className="w-16 rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-right text-sm text-[var(--text)] outline-none focus:border-[var(--acc2)]"
+                    />
+                  </div>
+                  {step.type === "single" && (
+                    <div>
+                      <span className="mono mb-1 block text-[0.58rem] uppercase tracking-wide text-[var(--text3)]">
+                        Ao escolher, ir para
                       </span>
                       <select
                         value={o.next ?? ""}
                         onChange={(e) =>
                           updateOption(key, oi, { next: e.target.value || undefined })
                         }
-                        className="min-w-0 flex-1 bg-transparent text-[0.78rem] text-[var(--text)] outline-none"
+                        className="w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1.5 text-[0.8rem] text-[var(--text)] outline-none focus:border-[var(--acc2)]"
                       >
                         <option value="">Seguir na ordem</option>
                         {steps
@@ -1164,21 +1175,8 @@ function StepSettings({
                           ))}
                         <option value={END_STEP}>Encerrar (tela final)</option>
                       </select>
-                    </label>
-                  ) : (
-                    <div className="flex-1" />
+                    </div>
                   )}
-                  <label className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5">
-                    <span className="mono text-[0.55rem] uppercase tracking-wide text-[var(--text3)]">
-                      peso
-                    </span>
-                    <input
-                      type="number"
-                      className="w-8 bg-transparent text-right text-sm text-[var(--text)] outline-none"
-                      value={o.weight ?? 0}
-                      onChange={(e) => updateOption(key, oi, { weight: Number(e.target.value) })}
-                    />
-                  </label>
                 </div>
               </div>
             ))}
