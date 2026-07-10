@@ -59,13 +59,26 @@ export default async function WorkspaceDetail({
                       {f.responses} respostas · /f/{f.slug}
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     <Link href={`/admin/forms/${f.id}/respostas`} className="rounded-full bg-[var(--accent)] px-3 py-1.5 text-xs font-bold text-[var(--text)]">
                       Respostas
                     </Link>
                     <Link href={`/admin/forms/${f.id}`} className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] hover:border-[#bbb]">
                       Editar
                     </Link>
+                    <a
+                      href={`/f/${f.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir link público em nova aba"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                        <path d="M15 3h6v6M10 14L21 3" />
+                      </svg>
+                      Ver link
+                    </a>
                   </div>
                 </div>
               ))}

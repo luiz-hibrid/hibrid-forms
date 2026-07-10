@@ -65,9 +65,29 @@ export function UsersManager({
     if (res.ok) router.refresh();
   }
 
+  const loginUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/admin/login` : "/admin/login";
+
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
       <div className="lbl mb-3">Usuários do cliente</div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-[var(--bg)] px-3 py-2.5">
+        <span className="mono text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+          Link de acesso do cliente
+        </span>
+        <code className="flex-1 truncate text-sm text-[var(--text)]">{loginUrl}</code>
+        <button
+          onClick={() => navigator.clipboard?.writeText(loginUrl).catch(() => {})}
+          className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
+        >
+          Copiar
+        </button>
+      </div>
+      <p className="mb-4 text-[0.72rem] text-[var(--text3)]">
+        Envie este link ao cliente junto com o e-mail e a senha que você cadastrar abaixo.
+        Ele entra e vê apenas os formulários e leads deste workspace.
+      </p>
 
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <input

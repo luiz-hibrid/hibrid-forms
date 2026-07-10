@@ -623,10 +623,16 @@ function EndScreen({
           </svg>
         </div>
 
-        <h1 className="mt-7 text-[1.7rem] sm:text-[2rem] font-black leading-tight tracking-tight text-[var(--text)]">
+        <h1
+          className="mt-7 text-[1.7rem] sm:text-[2rem] font-black leading-tight tracking-tight"
+          style={{ color: "var(--form-title, var(--text))" }}
+        >
           {title}
         </h1>
-        <p className="mt-4 whitespace-pre-line text-[1rem] text-[var(--text2)] leading-relaxed">
+        <p
+          className="mt-4 whitespace-pre-line text-[1rem] leading-relaxed"
+          style={{ color: "var(--form-title, var(--text2))", opacity: 0.7 }}
+        >
           {message}
         </p>
 

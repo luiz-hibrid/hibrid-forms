@@ -148,11 +148,11 @@ export function FormsDashboard({
             {filtered.map((f) => (
               <div
                 key={f.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] transition hover:border-[#bbb]"
+                className="group relative flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] transition hover:border-[#bbb]"
               >
                 <Link
                   href={`/admin/forms/${f.id}/respostas`}
-                  className="flex h-28 items-center justify-center bg-[var(--bg)] text-[var(--text3)]"
+                  className="flex h-28 items-center justify-center rounded-t-2xl bg-[var(--bg)] text-[var(--text3)]"
                 >
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
