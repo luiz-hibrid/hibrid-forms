@@ -14,7 +14,7 @@ import crypto from "crypto";
 //   GOOGLE_ADS_CONVERSION_ACTION_ID (opcional) fallback do id da conversão
 // ============================================================
 
-const API_VERSION = "v17";
+const API_VERSION = "v23";
 
 // Credenciais de AUTENTICAÇÃO (nível MCC/agência) — configuradas uma vez.
 // O Customer ID da conta do cliente vem por formulário (ou no env como fallback).
