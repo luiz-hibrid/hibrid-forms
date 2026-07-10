@@ -128,6 +128,7 @@ export function ResultsView({
   kanbanColumns,
   submissions,
   stats,
+  reached,
 }: {
   formId: string;
   formName: string;
@@ -135,7 +136,8 @@ export function ResultsView({
   steps: Field[];
   kanbanColumns: Column[];
   submissions: Submission[];
-  stats: { views: number; starts: number };
+  stats: { views: number; starts: number; avgMs?: number | null };
+  reached?: Record<string, number> | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<
@@ -163,6 +165,8 @@ export function ResultsView({
           starts={stats.starts}
           responses={responses}
           completion={completion}
+          avgMs={stats.avgMs ?? null}
+          reached={reached ?? null}
         />
       )}
       {tab === "responses" && (
@@ -185,6 +189,14 @@ export function ResultsView({
 }
 
 // ---------------------------------------------------------------- Resumo
+function fmtDuration(ms: number): string {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}m ${r}s` : `${m}m`;
+}
+
 function Summary({
   steps,
   submissions,
@@ -192,6 +204,8 @@ function Summary({
   starts,
   responses,
   completion,
+  avgMs,
+  reached,
 }: {
   steps: Field[];
   submissions: Submission[];
@@ -199,12 +213,19 @@ function Summary({
   starts: number;
   responses: number;
   completion: number;
+  avgMs: number | null;
+  reached: Record<string, number> | null;
 }) {
+  // Com rastreio de abandono: usa sessões que alcançaram cada pergunta.
+  // Sem rastreio: cai no comportamento antigo (respostas dos concluídos).
   const perQuestion = steps.map((s) => {
-    const answers = submissions.filter((sub) => hasAnswer(sub.answers?.[s.id])).length;
-    return { field: s, answers };
+    const answered = submissions.filter((sub) => hasAnswer(sub.answers?.[s.id])).length;
+    const reachedCount = reached ? reached[s.id] ?? 0 : answered;
+    return { field: s, answered, reached: reachedCount };
   });
-  const maxAns = Math.max(responses, 1);
+  const base = reached
+    ? Math.max(starts, perQuestion[0]?.reached ?? 0, 1)
+    : Math.max(responses, 1);
 
   return (
     <div>
@@ -217,19 +238,25 @@ function Summary({
         <Kpi n={starts} label="Iniciaram" />
         <Kpi n={responses} label="Respostas" />
         <Kpi n={`${completion}%`} label="Taxa de conclusão" />
-        <Kpi n="—" label="Tempo médio" />
+        <Kpi n={avgMs ? fmtDuration(avgMs) : "—"} label="Tempo médio" />
       </div>
 
       <div className="mt-6 mb-3 flex items-center justify-between">
-        <span className="lbl">Resumo das respostas</span>
+        <span className="lbl">
+          {reached ? "Funil de abandono" : "Resumo das respostas"}
+        </span>
+        {!reached && (
+          <span className="mono text-[0.68rem] text-[var(--text3)]">
+            Ative “Rastrear abandonos” nos Ajustes para ver onde as pessoas param
+          </span>
+        )}
       </div>
       <div className="grid gap-3">
-        {perQuestion.map(({ field, answers }, i) => {
-          const dropoff =
-            i === 0
-              ? responses - answers
-              : perQuestion[i - 1].answers - answers;
-          const pct = maxAns ? Math.round((answers / maxAns) * 100) : 0;
+        {perQuestion.map(({ field, answered, reached: rc }, i) => {
+          const count = reached ? rc : answered;
+          const prev = i === 0 ? base : perQuestion[i - 1][reached ? "reached" : "answered"];
+          const dropoff = Math.max(prev - count, 0);
+          const pct = base ? Math.round((count / base) * 100) : 0;
           return (
             <div
               key={field.id}
@@ -241,12 +268,13 @@ function Summary({
                 </div>
                 <div className="flex shrink-0 items-center gap-5 text-sm">
                   <span className="text-[var(--text2)]">
-                    Respostas <b className="text-[var(--text)]">{answers}</b>
+                    {reached ? "Alcançaram" : "Respostas"}{" "}
+                    <b className="text-[var(--text)]">{count}</b>
                   </span>
                   <span className="text-[var(--text2)]">
                     Abandono{" "}
                     <b className={dropoff > 0 ? "text-[var(--red)]" : "text-[var(--text)]"}>
-                      {dropoff > 0 ? dropoff : 0}
+                      {dropoff}
                     </b>
                   </span>
                 </div>

@@ -37,6 +37,8 @@ export async function POST(request: Request) {
       geo_city: geoCity ? decodeURIComponent(geoCity) : null,
       geo_lat: h.get("x-vercel-ip-latitude") || null,
       geo_lng: h.get("x-vercel-ip-longitude") || null,
+      duration_ms:
+        typeof body?.duration_ms === "number" ? Math.round(body.duration_ms) : null,
     };
 
     const supabase = getSupabaseAdmin();

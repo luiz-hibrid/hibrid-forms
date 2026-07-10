@@ -57,14 +57,22 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const [resolvedEnd, setResolvedEnd] = useState<EndScreenType | null>(null);
   const trackingRef = useRef<Record<string, string>>({});
   const startedRef = useRef(false);
+  const sessionRef = useRef<string>(newEventId());
+  const startedAtRef = useRef<number>(0);
+  const seenStepsRef = useRef<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function track(type: "view" | "start") {
+  function track(type: "view" | "start" | "step", stepId?: string) {
     try {
       fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ form: form.slug, type }),
+        body: JSON.stringify({
+          form: form.slug,
+          type,
+          step: stepId,
+          session: sessionRef.current,
+        }),
         keepalive: true,
       }).catch(() => {});
     } catch {}
@@ -79,6 +87,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
   function fireStart() {
     if (startedRef.current) return;
     startedRef.current = true;
+    startedAtRef.current = Date.now();
     track("start");
     pushDL({ event: "form_start", form_slug: form.slug });
   }
@@ -130,6 +139,17 @@ export function FormRunner({ form }: { form: FormConfig }) {
     setError(null);
     const id = setTimeout(() => inputRef.current?.focus(), 120);
     return () => clearTimeout(id);
+  }, [index]);
+
+  // Funil de abandono: registra cada pergunta alcançada (uma vez por sessão)
+  useEffect(() => {
+    if (!form.trackDropoff) return;
+    const s = form.steps[index];
+    if (!s || s.type === "welcome") return;
+    if (seenStepsRef.current.has(s.id)) return;
+    seenStepsRef.current.add(s.id);
+    track("step", s.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
   // Enter inicia na tela de boas-vindas
@@ -244,6 +264,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
       tier: tierId,
       qualified,
       tracking: trackingRef.current,
+      duration_ms: startedAtRef.current ? Date.now() - startedAtRef.current : null,
       pixel_event: {
         event_id: eventId,
         fbp: getCookie("_fbp"),

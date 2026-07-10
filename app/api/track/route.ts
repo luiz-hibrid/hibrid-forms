@@ -6,12 +6,18 @@ export const runtime = "nodejs";
 // Registra eventos do formulário (view / start) para o Resumo.
 export async function POST(request: Request) {
   try {
-    const { form, type } = await request.json();
-    if (!form || !["view", "start"].includes(type)) {
+    const { form, type, step, session } = await request.json();
+    if (!form || !["view", "start", "step"].includes(type)) {
       return NextResponse.json({ ok: false }, { status: 400 });
     }
     const sb = getSupabaseAdmin();
-    if (sb) await sb.from("form_events").insert({ form_slug: form, type });
+    if (sb)
+      await sb.from("form_events").insert({
+        form_slug: form,
+        type,
+        step: typeof step === "string" ? step : null,
+        session: typeof session === "string" ? session : null,
+      });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false }, { status: 400 });

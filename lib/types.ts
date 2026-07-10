@@ -133,4 +133,6 @@ export interface FormConfig {
   pixel?: PixelConfig;
   /** personalização visual do formulário */
   theme?: ThemeConfig;
+  /** registra por onde as pessoas passam para montar o funil de abandono */
+  trackDropoff?: boolean;
 }

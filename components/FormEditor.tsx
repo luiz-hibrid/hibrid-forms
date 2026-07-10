@@ -182,6 +182,7 @@ export function FormEditor({
   const [slug, setSlug] = useState(initial.slug);
   const [published, setPublished] = useState(initial.published);
   const [eyebrow, setEyebrow] = useState(cfg.eyebrow ?? "");
+  const [trackDropoff, setTrackDropoff] = useState<boolean>(!!cfg.trackDropoff);
   const [steps, setSteps] = useState<EditorField[]>(
     (cfg.steps ?? []).map((s: Field) => ({ ...s, _key: genId("k") }))
   );
@@ -438,7 +439,9 @@ export function FormEditor({
       defaultEndScreenId: defaultEndId,
       pixel: cleanPixel,
       theme,
+      trackDropoff,
       webhookUrl: webhookUrl.trim() || undefined,
+      ...(cfg.kanban ? { kanban: cfg.kanban } : {}),
     };
   }
 
@@ -702,6 +705,17 @@ export function FormEditor({
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-[var(--text)]">Publicado</span>
                     <Toggle checked={published} onChange={setPublished} />
+                  </div>
+                  <div className="mt-3 flex items-start justify-between gap-3 border-t border-[var(--border)] pt-3">
+                    <div className="min-w-0">
+                      <span className="text-sm text-[var(--text)]">Rastrear abandonos</span>
+                      <p className="mt-0.5 text-[0.72rem] text-[var(--text2)]">
+                        Registra por onde as pessoas passam e monta o funil de
+                        desistência no Resumo. Útil para descobrir a pergunta que
+                        mais faz gente sair.
+                      </p>
+                    </div>
+                    <Toggle checked={trackDropoff} onChange={setTrackDropoff} />
                   </div>
                 </div>
 
