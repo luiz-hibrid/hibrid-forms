@@ -472,7 +472,7 @@ function StepBody({
                 onEnter();
               }
             }}
-            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[1.05rem] text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.4)]"
+            className="hf-input w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[1.05rem] text-[var(--text)] outline-none transition"
           />
         )}
 
@@ -486,7 +486,7 @@ function StepBody({
                   onClick={() => onSelectSingle(field, opt.value)}
                   className={`group flex items-center justify-between rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${
                     selected
-                      ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)] shadow-[0_0_0_1px_var(--accent)]"
+                      ? "hf-opt-selected"
                       : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb] hover:-translate-y-[2px]"
                   }`}
                   style={{ animationDelay: `${i * 30}ms` }}
@@ -499,10 +499,16 @@ function StepBody({
                   </span>
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
-                      selected
-                        ? "border-[var(--accent)] bg-[var(--accent)]"
-                        : "border-[var(--border)] group-hover:border-[#bbb]"
+                      selected ? "" : "border-[var(--border)] group-hover:border-[#bbb]"
                     }`}
+                    style={
+                      selected
+                        ? {
+                            borderColor: "var(--form-btn-bg, var(--accent))",
+                            background: "var(--form-btn-bg, var(--accent))",
+                          }
+                        : undefined
+                    }
                   >
                     {selected && (
                       <svg

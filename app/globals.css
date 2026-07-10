@@ -26,6 +26,18 @@
     monospace;
 }
 
+/* Realces do formulário público seguem a cor do botão (--form-btn-bg).
+   Fallback para o verde padrão da marca quando não há tema custom. */
+.hf-input:focus {
+  border-color: var(--form-btn-bg, var(--acc2));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--form-btn-bg, #c2fb8d) 38%, transparent);
+}
+.hf-opt-selected {
+  border-color: var(--form-btn-bg, var(--accent)) !important;
+  background: color-mix(in srgb, var(--form-btn-bg, #c2fb8d) 14%, transparent) !important;
+  box-shadow: 0 0 0 1px var(--form-btn-bg, var(--accent));
+}
+
 * {
   box-sizing: border-box;
 }
