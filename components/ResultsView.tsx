@@ -19,12 +19,44 @@ interface Submission {
   status: string;
   stage: string;
   labels: string[];
+  qualified?: boolean;
   tracking: Record<string, string> | null;
   geo_uf: string | null;
   geo_city: string | null;
   geo_country: string | null;
+  gads_status: string | null;
+  gads_error: string | null;
+  gads_sent_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function GadsBadge({
+  status,
+  error,
+  qualified,
+}: {
+  status: string | null;
+  error: string | null;
+  qualified?: boolean;
+}) {
+  const map: Record<string, { label: string; icon: string; cls: string }> = {
+    sent: { label: "Enviado", icon: "✓", cls: "bg-[rgba(194,251,141,0.25)] text-[#3d7a00]" },
+    failed: { label: "Falhou", icon: "✗", cls: "bg-[rgba(220,38,38,0.12)] text-[var(--red)]" },
+    skipped: { label: "Ignorado", icon: "•", cls: "bg-[var(--bg)] text-[var(--text3)]" },
+  };
+  const m = status ? map[status] : null;
+  if (!m) {
+    return <span className="text-[var(--text3)]">{qualified ? "pendente" : "—"}</span>;
+  }
+  return (
+    <span
+      title={error || undefined}
+      className={`mono inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.55rem] font-bold uppercase ${m.cls}`}
+    >
+      {m.icon} {m.label}
+    </span>
+  );
 }
 
 function shortDate(iso: string): string {
@@ -360,13 +392,16 @@ function Responses({
               ))}
               <Th className="text-right">Score</Th>
               <Th>Faixa</Th>
+              <Th>
+                <HdrIcon d="M4 4h16v4H4zM4 12h10v8H4z" /> Google Ads
+              </Th>
               <Th></Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={steps.length + 8} className="px-4 py-12 text-center text-[var(--text2)]">
+                <td colSpan={steps.length + 9} className="px-4 py-12 text-center text-[var(--text2)]">
                   Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
                 </td>
               </tr>
@@ -397,6 +432,9 @@ function Responses({
                 ))}
                 <td className="px-4 py-3 text-right font-black tabular-nums text-[var(--text)]">{r.score}</td>
                 <td className="px-4 py-3"><TierBadge tier={r.tier} /></td>
+                <td className="px-4 py-3">
+                  <GadsBadge status={r.gads_status} error={r.gads_error} qualified={r.qualified} />
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
                   <Link href={`/admin/${r.id}`} className="mono text-[0.72rem] text-[var(--text2)] hover:text-[var(--text)] hover:underline">ver</Link>
                   <button onClick={() => remove(r.id)} className="ml-3 text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">✕</button>
@@ -718,6 +756,23 @@ function LeadModal({
               <Row label="Atualizado">
                 <span className="text-sm text-[var(--text2)]">{relativeTime(submission.updated_at)}</span>
               </Row>
+              <Row label="Google Ads">
+                <GadsBadge
+                  status={submission.gads_status}
+                  error={submission.gads_error}
+                  qualified={submission.qualified}
+                />
+              </Row>
+              {submission.gads_status === "failed" && submission.gads_error && (
+                <div className="mt-1 rounded-md bg-[rgba(220,38,38,0.08)] px-2 py-1.5 text-[0.7rem] text-[var(--red)]">
+                  {submission.gads_error}
+                </div>
+              )}
+              {submission.gads_status === "skipped" && submission.gads_error && (
+                <div className="mt-1 text-[0.7rem] text-[var(--text3)]">
+                  Não enviado: {submission.gads_error}
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl border border-[var(--border)] p-4">

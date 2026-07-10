@@ -129,20 +129,46 @@ export async function POST(request: Request) {
 
     // Google Ads — conversão offline server-side (lead qualificado + gclid)
     const gclid = (row.tracking as { gclid?: string } | null)?.gclid;
-    if (row.qualified && gclid && isGoogleAdsConfigured()) {
-      const result = await uploadQualifiedConversion({
-        gclid,
-        email: row.email,
-        phone: row.telefone,
-        value: row.score,
-        currency: "BRL",
-        orderId: pe.event_id ?? insertedId,
-        conversionActionId: fullForm?.pixel?.googleConversionActionId,
-        customerId: fullForm?.pixel?.googleCustomerId,
-        whenIso: body?.submitted_at,
-      });
-      if (!result.ok) {
-        console.error("[Hibrid Forms] Google Ads conversão:", result.error);
+    if (row.qualified) {
+      let gadsStatus: string | null = null;
+      let gadsError: string | null = null;
+      const hasActionCfg =
+        fullForm?.pixel?.googleCustomerId && fullForm?.pixel?.googleConversionActionId;
+
+      if (!gclid) {
+        gadsStatus = "skipped";
+        gadsError = "lead sem gclid";
+      } else if (!isGoogleAdsConfigured() || !hasActionCfg) {
+        gadsStatus = "skipped";
+        gadsError = !hasActionCfg
+          ? "formulário sem Customer/Conversion ID"
+          : "credenciais do Google Ads ausentes no servidor";
+      } else {
+        const result = await uploadQualifiedConversion({
+          gclid,
+          email: row.email,
+          phone: row.telefone,
+          value: row.score,
+          currency: "BRL",
+          orderId: pe.event_id ?? insertedId,
+          conversionActionId: fullForm?.pixel?.googleConversionActionId,
+          customerId: fullForm?.pixel?.googleCustomerId,
+          whenIso: body?.submitted_at,
+        });
+        gadsStatus = result.ok ? "sent" : "failed";
+        gadsError = result.ok ? null : result.error ?? "erro";
+        if (!result.ok) console.error("[Hibrid Forms] Google Ads conversão:", result.error);
+      }
+
+      if (supabase && insertedId) {
+        await supabase
+          .from("submissions")
+          .update({
+            gads_status: gadsStatus,
+            gads_error: gadsError,
+            gads_sent_at: gadsStatus === "sent" ? new Date().toISOString() : null,
+          })
+          .eq("id", insertedId);
       }
     }
 
