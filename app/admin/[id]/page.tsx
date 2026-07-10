@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import { isAuthenticated } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getFormBySlug } from "@/lib/forms-db";
 import type { FormConfig } from "@/lib/types";
@@ -37,7 +37,8 @@ export default async function LeadDetail({
 }: {
   params: { id: string };
 }) {
-  if (!isAuthenticated()) redirect("/admin/login");
+  const s = getSession();
+  if (!s) redirect("/admin/login");
   if (!isSupabaseConfigured()) redirect("/admin");
 
   const supabase = getSupabaseAdmin()!;
@@ -48,6 +49,8 @@ export default async function LeadDetail({
     .single();
 
   if (!data) notFound();
+  // cliente só acessa leads do próprio workspace
+  if (s.role === "client" && data.workspace_id !== s.workspaceId) notFound();
 
   const { data: formMeta } = await supabase
     .from("forms")

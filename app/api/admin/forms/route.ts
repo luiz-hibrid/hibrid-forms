@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
+import { getSession, activeWorkspaceId } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { slugify } from "@/lib/forms-db";
 
@@ -43,9 +43,20 @@ const DEFAULT_CONFIG = {
 };
 
 export async function POST(request: Request) {
-  if (!isAuthenticated()) {
-    return NextResponse.json({ ok: false }, { status: 401 });
-  }
+  const s = getSession();
+  if (!s) return NextResponse.json({ ok: false }, { status: 401 });
+  // criação de formulário é só do master (cliente é somente-resultados)
+  if (s.role !== "master")
+    return NextResponse.json({ ok: false, error: "sem_permissao" }, { status: 403 });
+
+  // precisa de um cliente (workspace) selecionado para saber onde criar
+  const workspaceId = activeWorkspaceId();
+  if (!workspaceId)
+    return NextResponse.json(
+      { ok: false, error: "selecione_workspace" },
+      { status: 400 }
+    );
+
   const sb = getSupabaseAdmin();
   if (!sb) {
     return NextResponse.json({ ok: false, error: "sem_supabase" }, { status: 400 });
@@ -69,7 +80,13 @@ export async function POST(request: Request) {
 
   const { data, error } = await sb
     .from("forms")
-    .insert({ slug, name: cleanName, config: DEFAULT_CONFIG, published: false })
+    .insert({
+      slug,
+      name: cleanName,
+      config: DEFAULT_CONFIG,
+      published: false,
+      workspace_id: workspaceId,
+    })
     .select("id")
     .single();
 

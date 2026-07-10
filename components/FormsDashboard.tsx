@@ -7,7 +7,13 @@ import type { FormListItem } from "@/lib/forms-db";
 
 type SortKey = "recent" | "name" | "responses";
 
-export function FormsDashboard({ forms }: { forms: FormListItem[] }) {
+export function FormsDashboard({
+  forms,
+  canCreate = false,
+}: {
+  forms: FormListItem[];
+  canCreate?: boolean;
+}) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<SortKey>("recent");
@@ -38,6 +44,8 @@ export function FormsDashboard({ forms }: { forms: FormListItem[] }) {
     const data = await res.json().catch(() => ({}));
     setCreating(false);
     if (res.ok && data.id) router.push(`/admin/forms/${data.id}`);
+    else if (data.error === "selecione_workspace")
+      alert("Selecione um cliente no seletor de workspace antes de criar o formulário.");
     else alert("Não foi possível criar o formulário.");
   }
 
@@ -112,13 +120,15 @@ export function FormsDashboard({ forms }: { forms: FormListItem[] }) {
             </ViewBtn>
           </div>
 
-          <button
-            onClick={createForm}
-            disabled={creating}
-            className="rounded-full bg-[var(--text)] px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-45"
-          >
-            {creating ? "Criando…" : "+ Criar formulário"}
-          </button>
+          {canCreate && (
+            <button
+              onClick={createForm}
+              disabled={creating}
+              className="rounded-full bg-[var(--text)] px-5 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-45"
+            >
+              {creating ? "Criando…" : "+ Criar formulário"}
+            </button>
+          )}
         </div>
 
         {/* Empty state */}
@@ -173,21 +183,25 @@ export function FormsDashboard({ forms }: { forms: FormListItem[] }) {
                     >
                       Respostas
                     </Link>
-                    <Link
-                      href={`/admin/forms/${f.id}`}
-                      className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-                    >
-                      Editar
-                    </Link>
-                    <button
-                      onClick={() => remove(f.id, f.name)}
-                      className="ml-auto text-[var(--text3)] hover:text-[var(--red)]"
-                      aria-label="Excluir"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
+                    {canCreate && (
+                      <>
+                        <Link
+                          href={`/admin/forms/${f.id}`}
+                          className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+                        >
+                          Editar
+                        </Link>
+                        <button
+                          onClick={() => remove(f.id, f.name)}
+                          className="ml-auto text-[var(--text3)] hover:text-[var(--red)]"
+                          aria-label="Excluir"
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -228,14 +242,18 @@ export function FormsDashboard({ forms }: { forms: FormListItem[] }) {
                   <Link href={`/admin/forms/${f.id}/respostas`} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--acc2)]">
                     Respostas
                   </Link>
-                  <Link href={`/admin/forms/${f.id}`} className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]">
-                    Editar
-                  </Link>
-                  <button onClick={() => remove(f.id, f.name)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
+                  {canCreate && (
+                    <>
+                      <Link href={`/admin/forms/${f.id}`} className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]">
+                        Editar
+                      </Link>
+                      <button onClick={() => remove(f.id, f.name)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

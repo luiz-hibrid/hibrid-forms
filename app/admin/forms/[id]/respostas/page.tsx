@@ -1,5 +1,5 @@
 import { redirect, notFound } from "next/navigation";
-import { isAuthenticated } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { getFormRow } from "@/lib/forms-db";
 import type { Field } from "@/lib/types";
@@ -19,10 +19,12 @@ export default async function ResultsPage({
 }: {
   params: { id: string };
 }) {
-  if (!isAuthenticated()) redirect("/admin/login");
+  const s = getSession();
+  if (!s) redirect("/admin/login");
   if (!isSupabaseConfigured()) redirect("/admin/forms");
 
-  const form = await getFormRow(params.id);
+  const scope = s.role === "client" ? s.workspaceId : null;
+  const form = await getFormRow(params.id, scope);
   if (!form) notFound();
 
   const steps = ((form.config as any)?.steps ?? []) as Field[];

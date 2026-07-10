@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 
 export default function AdminLogin() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -17,19 +18,14 @@ export default function AdminLogin() {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ email, password }),
     });
     setLoading(false);
     if (res.ok) {
       router.push("/admin/forms");
       router.refresh();
     } else {
-      const data = await res.json().catch(() => ({}));
-      setError(
-        data?.error === "admin_nao_configurado"
-          ? "Painel ainda não configurado (defina ADMIN_PASSWORD)."
-          : "Senha incorreta."
-      );
+      setError("E-mail ou senha incorretos.");
     }
   }
 
@@ -48,15 +44,24 @@ export default function AdminLogin() {
             Acessar leads
           </h1>
           <p className="mt-2 text-sm text-[var(--text2)]">
-            Área restrita ao time da Hibrid.
+            Entre com seu e-mail e senha.
           </p>
           <input
-            type="password"
+            type="email"
             autoFocus
+            autoComplete="username"
+            placeholder="seu@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-6 w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.4)]"
+          />
+          <input
+            type="password"
+            autoComplete="current-password"
             placeholder="Senha de acesso"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-6 w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.4)]"
+            className="mt-3 w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-4 py-3 text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.4)]"
           />
           {error && <p className="mt-3 text-sm text-[var(--red)]">{error}</p>}
           <button

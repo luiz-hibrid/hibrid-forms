@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendToCrm, isCrmConfigured } from "@/lib/crm";
-import { getFormBySlug } from "@/lib/forms-db";
+import { getFormBySlug, getWorkspaceIdBySlug } from "@/lib/forms-db";
 import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
 import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
 
@@ -44,10 +44,13 @@ export async function POST(request: Request) {
     const supabase = getSupabaseAdmin();
     let insertedId: string | null = null;
 
+    // workspace dono do formulário (isolamento multi-tenant)
+    const workspaceId = await getWorkspaceIdBySlug(row.form_slug);
+
     if (supabase) {
       const { data, error } = await supabase
         .from("submissions")
-        .insert(row)
+        .insert({ ...row, workspace_id: workspaceId })
         .select("id")
         .single();
       if (error) {

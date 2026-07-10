@@ -34,22 +34,44 @@ export async function getFormBySlug(slug: string): Promise<FormConfig | null> {
   return { slug: data.slug, name: data.name, ...(data.config ?? {}) } as FormConfig;
 }
 
-/** Linha bruta (usado pelo editor do admin). */
-export async function getFormRow(id: string): Promise<FormRow | null> {
+/** Workspace dono do formulário (usado ao gravar a submissão). */
+export async function getWorkspaceIdBySlug(slug: string): Promise<string | null> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("forms")
+    .select("workspace_id")
+    .eq("slug", slug)
+    .maybeSingle();
+  return (data?.workspace_id as string) ?? null;
+}
+
+/** Linha bruta (usado pelo editor do admin). Escopa por workspace se informado. */
+export async function getFormRow(
+  id: string,
+  workspaceId?: string | null
+): Promise<FormRow | null> {
   const sb = getSupabaseAdmin();
   if (!sb) return null;
   const { data } = await sb.from("forms").select("*").eq("id", id).maybeSingle();
   if (!data) return null;
+  // master (workspaceId undefined/null) vê tudo; cliente só o próprio
+  if (workspaceId && (data as FormRow & { workspace_id?: string }).workspace_id !== workspaceId)
+    return null;
   return data as FormRow;
 }
 
-export async function listForms(): Promise<FormListItem[]> {
+export async function listForms(
+  workspaceId?: string | null
+): Promise<FormListItem[]> {
   const sb = getSupabaseAdmin();
   if (!sb) return [];
-  const { data } = await sb
+  let query = sb
     .from("forms")
-    .select("id,slug,name,published,config,created_at")
+    .select("id,slug,name,published,config,created_at,workspace_id")
     .order("created_at", { ascending: false });
+  if (workspaceId) query = query.eq("workspace_id", workspaceId);
+  const { data } = await query;
 
   const forms = data ?? [];
 

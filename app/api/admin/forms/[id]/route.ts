@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { slugify } from "@/lib/forms-db";
 
@@ -9,7 +9,9 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  if (!isAuthenticated()) return NextResponse.json({ ok: false }, { status: 401 });
+  const s = getSession();
+  if (!s) return NextResponse.json({ ok: false }, { status: 401 });
+  if (s.role !== "master") return NextResponse.json({ ok: false }, { status: 403 });
   const sb = getSupabaseAdmin();
   if (!sb) return NextResponse.json({ ok: false, error: "sem_supabase" }, { status: 400 });
 
@@ -49,7 +51,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
-  if (!isAuthenticated()) return NextResponse.json({ ok: false }, { status: 401 });
+  const s = getSession();
+  if (!s) return NextResponse.json({ ok: false }, { status: 401 });
+  if (s.role !== "master") return NextResponse.json({ ok: false }, { status: 403 });
   const sb = getSupabaseAdmin();
   if (!sb) return NextResponse.json({ ok: false, error: "sem_supabase" }, { status: 400 });
 
