@@ -12,9 +12,9 @@ export async function generateMetadata({
   params: { slug: string };
 }) {
   const form = await getFormBySlug(params.slug);
-  return {
-    title: form ? `${form.name} · Hibrid` : "Formulário · Hibrid",
-  };
+  const title =
+    form?.pageTitle?.trim() || form?.name?.trim() || "Formulário";
+  return { title };
 }
 
 export default async function FormPage({
@@ -53,6 +53,16 @@ export default async function FormPage({
         </noscript>
       )}
       <PixelInit gtmId={gtmId} metaPixelId={metaPixelId} ga4Id={ga4Id} />
+      {form.logoUrl && (
+        <div className="pointer-events-none fixed left-5 top-5 z-40 sm:left-8 sm:top-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={form.logoUrl}
+            alt=""
+            className="h-8 w-auto object-contain sm:h-10"
+          />
+        </div>
+      )}
       <FormRunner form={clientForm} />
     </main>
   );

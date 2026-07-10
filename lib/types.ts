@@ -137,4 +137,8 @@ export interface FormConfig {
   theme?: ThemeConfig;
   /** registra por onde as pessoas passam para montar o funil de abandono */
   trackDropoff?: boolean;
+  /** título da aba do navegador (padrão: nome do formulário) */
+  pageTitle?: string;
+  /** logo exibida no canto superior esquerdo do formulário */
+  logoUrl?: string;
 }

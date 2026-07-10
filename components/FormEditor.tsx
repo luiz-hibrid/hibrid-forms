@@ -182,6 +182,8 @@ export function FormEditor({
   const [slug, setSlug] = useState(initial.slug);
   const [published, setPublished] = useState(initial.published);
   const [eyebrow, setEyebrow] = useState(cfg.eyebrow ?? "");
+  const [pageTitle, setPageTitle] = useState(cfg.pageTitle ?? "");
+  const [logoUrl, setLogoUrl] = useState<string>(cfg.logoUrl ?? "");
   const [trackDropoff, setTrackDropoff] = useState<boolean>(!!cfg.trackDropoff);
   const [steps, setSteps] = useState<EditorField[]>(
     (cfg.steps ?? []).map((s: Field) => ({ ...s, _key: genId("k") }))
@@ -440,6 +442,8 @@ export function FormEditor({
       pixel: cleanPixel,
       theme,
       trackDropoff,
+      pageTitle: pageTitle.trim() || undefined,
+      logoUrl: logoUrl.trim() || undefined,
       webhookUrl: webhookUrl.trim() || undefined,
       ...(cfg.kanban ? { kanban: cfg.kanban } : {}),
     };
@@ -702,6 +706,17 @@ export function FormEditor({
                       placeholder="Ex.: Diagnóstico gratuito"
                     />
                   </FieldRow>
+                  <FieldRow label="Título da página (aba do navegador)">
+                    <input
+                      className={inputCls}
+                      value={pageTitle}
+                      onChange={(e) => setPageTitle(e.target.value)}
+                      placeholder={name || "Nome do formulário"}
+                    />
+                  </FieldRow>
+                  <FieldRow label="Logo (canto superior esquerdo)">
+                    <LogoUploader value={logoUrl} onChange={setLogoUrl} />
+                  </FieldRow>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm text-[var(--text)]">Publicado</span>
                     <Toggle checked={published} onChange={setPublished} />
@@ -844,9 +859,18 @@ export function FormEditor({
                           ? 620
                           : 540,
                       padding: device === "mobile" ? "28px" : "48px",
+                      position: "relative",
                     } as React.CSSProperties
                   }
                 >
+                  {logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      style={{ position: "absolute", left: 20, top: 18, height: 28, width: "auto", objectFit: "contain" }}
+                    />
+                  )}
                   <div
                     style={{
                       width: "100%",
@@ -2047,6 +2071,85 @@ function EventsNote({ items }: { items: [string, string][] }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function LogoUploader({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const inputId = "logo-file-input";
+
+  async function upload(file: File) {
+    setBusy(true);
+    setErr(null);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (res.ok && data.url) onChange(data.url);
+    else
+      setErr(
+        data.error === "arquivo_grande"
+          ? "Arquivo acima de 2MB."
+          : data.error === "tipo_invalido"
+          ? "Tipo não suportado."
+          : "Falha no upload."
+      );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+          {value ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={value} alt="logo" className="max-h-full max-w-full object-contain" />
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-[var(--text3)]">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          )}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor={inputId}
+            className="cursor-pointer rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
+          >
+            {busy ? "Enviando…" : value ? "Trocar logo" : "Enviar logo"}
+          </label>
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange("")}
+              className="text-left text-xs text-[var(--text3)] hover:text-[var(--red)]"
+            >
+              Remover
+            </button>
+          )}
+        </div>
+        <input
+          id={inputId}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) upload(f);
+            e.currentTarget.value = "";
+          }}
+        />
+      </div>
+      {err && <p className="mt-1 text-xs text-[var(--red)]">{err}</p>}
     </div>
   );
 }
