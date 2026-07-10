@@ -46,17 +46,35 @@ export async function POST(request: Request) {
 
     // workspace dono do formulário (isolamento multi-tenant)
     const workspaceId = await getWorkspaceIdBySlug(row.form_slug);
+    const session = body?.session ?? null;
 
     if (supabase) {
-      const { data, error } = await supabase
-        .from("submissions")
-        .insert({ ...row, workspace_id: workspaceId })
-        .select("id")
-        .single();
-      if (error) {
-        console.error("[Hibrid Forms] Erro ao gravar no Supabase:", error.message);
+      // se houve salvamento progressivo, promove a linha da sessão (parcial → completo)
+      let existingId: string | null = null;
+      if (session) {
+        const { data: ex } = await supabase
+          .from("submissions")
+          .select("id")
+          .eq("session", session)
+          .maybeSingle();
+        existingId = ex?.id ?? null;
+      }
+
+      if (existingId) {
+        const { error } = await supabase
+          .from("submissions")
+          .update({ ...row, workspace_id: workspaceId, session, updated_at: new Date().toISOString() })
+          .eq("id", existingId);
+        if (error) console.error("[Hibrid Forms] Erro ao atualizar no Supabase:", error.message);
+        else insertedId = existingId;
       } else {
-        insertedId = data?.id ?? null;
+        const { data, error } = await supabase
+          .from("submissions")
+          .insert({ ...row, workspace_id: workspaceId, session })
+          .select("id")
+          .single();
+        if (error) console.error("[Hibrid Forms] Erro ao gravar no Supabase:", error.message);
+        else insertedId = data?.id ?? null;
       }
     } else {
       console.warn("[Hibrid Forms] Supabase não configurado — lead apenas logado.");

@@ -81,7 +81,8 @@ export async function listForms(
       const { count } = await sb
         .from("submissions")
         .select("id", { count: "exact", head: true })
-        .eq("form_slug", r.slug);
+        .eq("form_slug", r.slug)
+        .eq("status", "complete");
       return count ?? 0;
     })
   );

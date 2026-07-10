@@ -57,10 +57,30 @@ export function FormRunner({ form }: { form: FormConfig }) {
   const [resolvedEnd, setResolvedEnd] = useState<EndScreenType | null>(null);
   const trackingRef = useRef<Record<string, string>>({});
   const startedRef = useRef(false);
+  const doneRef = useRef(false);
   const sessionRef = useRef<string>(newEventId());
   const startedAtRef = useRef<number>(0);
   const seenStepsRef = useRef<Set<string>>(new Set());
+  const answersRef = useRef<Answers>({});
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Salvamento progressivo: grava um lead parcial (só se "Rastrear abandonos").
+  function savePartial(a: Answers) {
+    if (!form.trackDropoff) return;
+    try {
+      fetch("/api/submit/partial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          form: { slug: form.slug, name: form.name },
+          session: sessionRef.current,
+          answers: a,
+          tracking: trackingRef.current,
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
+  }
 
   function track(type: "view" | "start" | "step", stepId?: string) {
     try {
@@ -152,6 +172,41 @@ export function FormRunner({ form }: { form: FormConfig }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index]);
 
+  // Mantém a referência das respostas atualizada (para o beacon de saída)
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  // Beacon ao sair/fechar: garante o snapshot do que foi preenchido
+  useEffect(() => {
+    if (!form.trackDropoff) return;
+    function flush() {
+      if (!startedRef.current || doneRef.current) return;
+      try {
+        const payload = JSON.stringify({
+          form: { slug: form.slug, name: form.name },
+          session: sessionRef.current,
+          answers: answersRef.current,
+          tracking: trackingRef.current,
+        });
+        navigator.sendBeacon?.(
+          "/api/submit/partial",
+          new Blob([payload], { type: "application/json" })
+        );
+      } catch {}
+    }
+    const onVis = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", flush);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Enter inicia na tela de boas-vindas
   useEffect(() => {
     if (step.type !== "welcome") return;
@@ -194,6 +249,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
       setError(err);
       return;
     }
+    savePartial(answers);
     goTarget({ kind: "step", index: index + 1 });
   }
 
@@ -256,9 +312,11 @@ export function FormRunner({ form }: { form: FormConfig }) {
       },
     });
 
+    doneRef.current = true;
     const payload = {
       form: { slug: form.slug, name: form.name },
       status: "complete" as const,
+      session: sessionRef.current,
       answers: finalAnswers,
       score,
       tier: tierId,
@@ -294,6 +352,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
     const opt = field.options?.find((o) => o.value === value);
     const target = targetFromOption(opt);
     setAnswer(field.id, value);
+    savePartial(next);
     setTimeout(() => {
       goTarget(target, next); // usa as respostas já com a última seleção
     }, 260);

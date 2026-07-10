@@ -144,7 +144,11 @@ export function ResultsView({
     "summary" | "responses" | "map" | "kanban"
   >("summary");
 
-  const responses = submissions.length;
+  const completes = useMemo(
+    () => submissions.filter((s) => s.status === "complete"),
+    [submissions]
+  );
+  const responses = completes.length;
   const completion = stats.views > 0 ? Math.round((responses / stats.views) * 100) : 0;
 
   return (
@@ -160,7 +164,7 @@ export function ResultsView({
       {tab === "summary" && (
         <Summary
           steps={steps}
-          submissions={submissions}
+          submissions={completes}
           views={stats.views}
           starts={stats.starts}
           responses={responses}
@@ -174,13 +178,13 @@ export function ResultsView({
           <Responses steps={steps} submissions={submissions} formSlug={formSlug} onChange={() => router.refresh()} />
         </div>
       )}
-      {tab === "map" && <BrazilGeoMap submissions={submissions} />}
+      {tab === "map" && <BrazilGeoMap submissions={completes} />}
       {tab === "kanban" && (
         <Kanban
           formId={formId}
           steps={steps}
           initialColumns={kanbanColumns}
-          submissions={submissions}
+          submissions={completes}
           onRefresh={() => router.refresh()}
         />
       )}
@@ -313,6 +317,12 @@ function Responses({
 }) {
   const [q, setQ] = useState("");
   const [campaign, setCampaign] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"complete" | "partial" | "all">("complete");
+
+  const partialCount = useMemo(
+    () => submissions.filter((s) => s.status !== "complete").length,
+    [submissions]
+  );
 
   const campaigns = useMemo(() => {
     const set = new Set<string>();
@@ -326,6 +336,8 @@ function Responses({
   const rows = useMemo(() => {
     const t = q.toLowerCase();
     return submissions.filter((s) => {
+      if (statusFilter === "complete" && s.status !== "complete") return false;
+      if (statusFilter === "partial" && s.status === "complete") return false;
       if (campaign && s.tracking?.utm_campaign !== campaign) return false;
       if (!t) return true;
       const blob = [
@@ -340,7 +352,7 @@ function Responses({
         .toLowerCase();
       return blob.includes(t);
     });
-  }, [q, campaign, submissions]);
+  }, [q, campaign, statusFilter, submissions]);
 
   async function remove(id: string) {
     if (!confirm("Excluir esta resposta?")) return;
@@ -359,6 +371,15 @@ function Responses({
             placeholder="Buscar nas respostas…"
             className="w-full max-w-[280px] rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm outline-none focus:border-[var(--acc2)]"
           />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "complete" | "partial" | "all")}
+            className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text2)]"
+          >
+            <option value="complete">Completas</option>
+            <option value="partial">Parciais{partialCount ? ` (${partialCount})` : ""}</option>
+            <option value="all">Todas</option>
+          </select>
           {campaigns.length > 0 && (
             <select
               value={campaign}
