@@ -69,6 +69,46 @@ async function getAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * Testa as credenciais (OAuth + developer token) sem efeitos colaterais:
+ * pega um access token e lista as contas acessíveis pela conta autenticada.
+ */
+export async function testCredentials(): Promise<{
+  ok: boolean;
+  status?: number;
+  customers?: string[];
+  error?: string;
+}> {
+  if (!isGoogleAdsConfigured()) {
+    return { ok: false, error: "Faltam credenciais (developer token / OAuth / refresh token)." };
+  }
+  const token = await getAccessToken();
+  if (!token) {
+    return { ok: false, error: "Não obteve access token — confira client id/secret/refresh token." };
+  }
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+  };
+  if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+    headers["login-customer-id"] = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID.replace(/\D/g, "");
+  }
+  try {
+    const res = await fetch(
+      `https://googleads.googleapis.com/${API_VERSION}/customers:listAccessibleCustomers`,
+      { headers }
+    );
+    const text = await res.text();
+    if (!res.ok) {
+      return { ok: false, status: res.status, error: text.slice(0, 800) };
+    }
+    const data = JSON.parse(text);
+    return { ok: true, customers: data.resourceNames ?? [] };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 export interface QualifiedConversion {
   gclid: string;
   email?: string | null;
