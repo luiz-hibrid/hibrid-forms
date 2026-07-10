@@ -41,7 +41,7 @@ export default async function FormPage({
   } as React.CSSProperties;
 
   return (
-    <main className="min-h-screen flex flex-col" style={style}>
+    <main className="flex min-h-screen min-h-[100dvh] flex-col" style={style}>
       {gtmId && (
         <noscript>
           <iframe

@@ -319,7 +319,7 @@ export function FormRunner({ form }: { form: FormConfig }) {
       )}
 
       {/* Conteúdo centralizado, sem card/borda, ocupando a tela */}
-      <div className="flex min-h-screen flex-1 items-center justify-center px-6 py-16">
+      <div className="flex min-h-screen min-h-[100dvh] flex-1 items-center justify-center px-6 py-16">
         <div key={index} className="step-in w-full max-w-[640px]">
           <StepBody
             field={step}
@@ -599,7 +599,7 @@ function EndScreen({
   const isHot = !!screen?.qualified;
 
   return (
-    <div className="flex-1 flex items-center justify-center px-5 pb-16 pt-6">
+    <div className="flex min-h-[100dvh] flex-1 items-center justify-center px-5 pb-16 pt-6">
       <div className="w-full max-w-[560px] text-center pop-in">
         <div
           className="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
