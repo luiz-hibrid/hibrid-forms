@@ -89,6 +89,7 @@ function relativeTime(iso: string): string {
 interface Column {
   id: string;
   name: string;
+  qualified?: boolean;
 }
 
 function fmtDate(iso: string): string {
@@ -502,12 +503,34 @@ function Kanban({
   }
 
   async function moveCard(id: string, stage: string) {
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
-    await fetch(`/api/admin/submissions/${id}`, {
+    const col = columns.find((c) => c.id === stage);
+    const qualify = !!col?.qualified;
+    setCards((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, stage, qualified: qualify ? true : c.qualified } : c
+      )
+    );
+    const res = await fetch(`/api/admin/submissions/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage }),
+      body: JSON.stringify(qualify ? { stage, qualify: true } : { stage }),
     });
+    if (qualify) {
+      const data = await res.json().catch(() => ({}));
+      const gs = data?.gads_status as string | undefined;
+      if (gs) {
+        setCards((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, gads_status: gs } : c))
+        );
+      }
+    }
+  }
+
+  function toggleQualified(id: string) {
+    const next = columns.map((c) =>
+      c.id === id ? { ...c, qualified: !c.qualified } : c
+    );
+    saveColumns(next);
   }
 
   function addColumn() {
@@ -550,9 +573,13 @@ function Kanban({
                 if (dragId) moveCard(dragId, col.id);
                 setDragId(null);
               }}
-              className="flex max-h-[75vh] w-[310px] shrink-0 flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3"
+              className={`flex max-h-[75vh] w-[310px] shrink-0 flex-col rounded-2xl border bg-[var(--card)] p-3 ${
+                col.qualified
+                  ? "border-[var(--acc2)] ring-1 ring-[var(--acc2)]"
+                  : "border-[var(--border)]"
+              }`}
             >
-              <div className="mb-3 flex items-center gap-2">
+              <div className="mb-3 flex items-center gap-1.5">
                 <input
                   value={col.name}
                   onChange={(e) => setColumnName(col.id, e.target.value)}
@@ -563,6 +590,24 @@ function Kanban({
                   className="mono min-w-0 flex-1 rounded bg-transparent px-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text2)] outline-none hover:bg-[var(--bg)] focus:bg-[var(--bg)]"
                   title="Clique para renomear"
                 />
+                <button
+                  onClick={() => toggleQualified(col.id)}
+                  className={`shrink-0 transition ${
+                    col.qualified
+                      ? "text-[#3d7a00]"
+                      : "text-[var(--text3)] hover:text-[var(--text2)]"
+                  }`}
+                  aria-label="Marcar coluna como qualificada"
+                  title={
+                    col.qualified
+                      ? "Coluna qualificada — mover um lead pra cá dispara a conversão. Clique para desativar."
+                      : "Marcar como coluna de qualificados (dispara conversão ao receber um lead)"
+                  }
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill={col.qualified ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" />
+                  </svg>
+                </button>
                 <span className="inline-flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-md bg-[var(--text)] px-1.5 text-xs font-bold text-white">
                   {colCards.length}
                 </span>
@@ -579,6 +624,12 @@ function Kanban({
                   </button>
                 )}
               </div>
+              {col.qualified && (
+                <div className="mb-2 flex items-center gap-1 rounded-md bg-[rgba(194,251,141,0.2)] px-2 py-1 text-[0.6rem] font-medium text-[#3d7a00]">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" /></svg>
+                  Dispara conversão de qualificado
+                </div>
+              )}
               <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
                 {colCards.length === 0 && (
                   <div className="flex flex-1 flex-col items-center justify-center rounded-xl bg-[var(--bg)] py-16 text-center">
