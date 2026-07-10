@@ -1906,6 +1906,10 @@ function IntegrateTab({
           gclid, quando as credenciais do Google Ads estão configuradas no
           servidor.
         </p>
+        <GoogleAdsTestButton
+          customerId={pixel.googleCustomerId}
+          conversionActionId={pixel.googleConversionActionId}
+        />
       </IntegrationCard>
 
       <IntegrationCard
@@ -1921,6 +1925,67 @@ function IntegrateTab({
           Se vazio, usa a URL global (variável CRM_WEBHOOK_URL).
         </p>
       </IntegrationCard>
+    </div>
+  );
+}
+
+function GoogleAdsTestButton({
+  customerId,
+  conversionActionId,
+}: {
+  customerId?: string;
+  conversionActionId?: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  async function run() {
+    setLoading(true);
+    setResult(null);
+    try {
+      const q = new URLSearchParams();
+      if (customerId) q.set("customerId", customerId);
+      if (conversionActionId) q.set("conversionActionId", conversionActionId);
+      const res = await fetch(`/api/admin/google-test?${q.toString()}`);
+      const data = await res.json();
+      const a = data.action as
+        | { name?: string; id?: string; type?: string; status?: string }
+        | undefined;
+      if (data.ok && a) {
+        setResult({
+          ok: true,
+          msg: `Conta e ação válidas — ${a.name ?? a.id} · ${a.type ?? ""} · ${a.status ?? ""}`,
+        });
+      } else if (data.ok) {
+        setResult({ ok: true, msg: "Credenciais válidas." });
+      } else {
+        setResult({ ok: false, msg: data.error || "Falha na validação." });
+      }
+    } catch {
+      setResult({ ok: false, msg: "Erro ao validar." });
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="mt-3">
+      <button
+        onClick={run}
+        disabled={loading || !customerId || !conversionActionId}
+        className="rounded-full bg-[var(--text)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-45"
+      >
+        {loading ? "Validando…" : "Validar conexão"}
+      </button>
+      {result && (
+        <p
+          className={`mt-2 text-sm ${
+            result.ok ? "text-[#3d7a00]" : "text-[var(--red)]"
+          }`}
+        >
+          {result.ok ? "✓ " : "✕ "}
+          {result.msg}
+        </p>
+      )}
     </div>
   );
 }
