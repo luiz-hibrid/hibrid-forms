@@ -969,7 +969,7 @@ function StepPreview({
         >
           {(endScreen.title || "").replace(/\{nome\}/g, "João")}
         </h1>
-        <p className="mt-3 whitespace-pre-line" style={{ color: "var(--form-title)", opacity: 0.7 }}>
+        <p className="mt-3 whitespace-pre-line" style={{ color: "var(--form-subtitle)" }}>
           {(endScreen.message || "").replace(/\{nome\}/g, "João")}
         </p>
         {endScreen.ctaLabel && (
@@ -1009,7 +1009,7 @@ function StepPreview({
         {step.title || "(sem título)"}
       </h1>
       {step.subtitle && (
-        <p className="mt-2 whitespace-pre-line" style={{ color: "var(--form-title)", opacity: 0.65 }}>
+        <p className="mt-2 whitespace-pre-line" style={{ color: "var(--form-subtitle)" }}>
           {step.subtitle}
         </p>
       )}
@@ -1415,6 +1415,11 @@ function DesignPanel({
           label="Títulos e textos"
           value={t.questionColor}
           onChange={(v) => updateTheme({ questionColor: v })}
+        />
+        <ColorField
+          label="Subtítulos"
+          value={t.subtitleColor}
+          onChange={(v) => updateTheme({ subtitleColor: v })}
         />
         <ColorField
           label="Respostas"

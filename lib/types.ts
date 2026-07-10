@@ -109,6 +109,8 @@ export interface ThemeConfig {
   fontSize?: "sm" | "md" | "lg";
   /** cor de títulos e textos */
   questionColor?: string;
+  /** cor dos subtítulos */
+  subtitleColor?: string;
   /** cor das respostas */
   answerColor?: string;
   /** cor de fundo do botão */

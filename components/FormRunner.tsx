@@ -428,7 +428,10 @@ function StepBody({
         {field.title}
       </h1>
       {field.subtitle && (
-        <p className="mt-3 whitespace-pre-line text-[0.95rem] text-[var(--text2)] leading-relaxed">
+        <p
+          className="mt-3 whitespace-pre-line text-[0.95rem] leading-relaxed"
+          style={{ color: "var(--form-subtitle, var(--text2))" }}
+        >
           {field.subtitle}
         </p>
       )}
@@ -631,7 +634,7 @@ function EndScreen({
         </h1>
         <p
           className="mt-4 whitespace-pre-line text-[1rem] leading-relaxed"
-          style={{ color: "var(--form-title, var(--text2))", opacity: 0.7 }}
+          style={{ color: "var(--form-subtitle, var(--text2))" }}
         >
           {message}
         </p>

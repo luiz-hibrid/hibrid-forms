@@ -24,6 +24,7 @@ export const DEFAULT_THEME: Required<ThemeConfig> = {
   font: "brand",
   fontSize: "md",
   questionColor: "#111111",
+  subtitleColor: "#666666",
   answerColor: "#111111",
   buttonBg: "#c2fb8d",
   buttonText: "#111111",
@@ -41,6 +42,7 @@ export function themeVars(theme?: ThemeConfig): Record<string, string> {
   return {
     "--form-bg": t.bg,
     "--form-title": t.questionColor,
+    "--form-subtitle": t.subtitleColor,
     "--form-answer": t.answerColor,
     "--form-btn-bg": t.buttonBg,
     "--form-btn-text": t.buttonText,
