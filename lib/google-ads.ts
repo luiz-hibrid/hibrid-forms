@@ -109,6 +109,53 @@ export async function testCredentials(): Promise<{
   }
 }
 
+/**
+ * Verifica se uma conta (customerId) e uma ação de conversão existem/são
+ * acessíveis — sem criar conversão. Ótimo pra validar a config de um formulário.
+ */
+export async function verifyConversionAction(
+  customerId: string,
+  conversionActionId: string
+): Promise<{ ok: boolean; status?: number; action?: unknown; error?: string }> {
+  if (!isGoogleAdsConfigured()) {
+    return { ok: false, error: "Faltam credenciais de autenticação." };
+  }
+  const cid = (customerId || "").replace(/\D/g, "");
+  const aid = (conversionActionId || "").replace(/\D/g, "");
+  if (!cid || !aid) return { ok: false, error: "customerId e conversionActionId obrigatórios" };
+
+  const token = await getAccessToken();
+  if (!token) return { ok: false, error: "Não obteve access token." };
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+    "Content-Type": "application/json",
+  };
+  if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+    headers["login-customer-id"] = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID.replace(/\D/g, "");
+  }
+
+  const query = `SELECT conversion_action.id, conversion_action.name, conversion_action.type, conversion_action.status FROM conversion_action WHERE conversion_action.id = ${aid}`;
+
+  try {
+    const res = await fetch(
+      `https://googleads.googleapis.com/${API_VERSION}/customers/${cid}/googleAds:search`,
+      { method: "POST", headers, body: JSON.stringify({ query }) }
+    );
+    const text = await res.text();
+    if (!res.ok) return { ok: false, status: res.status, error: text.slice(0, 800) };
+    const data = JSON.parse(text);
+    const action = data.results?.[0]?.conversionAction;
+    if (!action) {
+      return { ok: false, error: "Ação de conversão não encontrada nessa conta." };
+    }
+    return { ok: true, action };
+  } catch (err) {
+    return { ok: false, error: String(err) };
+  }
+}
+
 export interface QualifiedConversion {
   gclid: string;
   email?: string | null;
