@@ -4,9 +4,11 @@ import { Logo } from "@/components/Logo";
 export function FormResultsTopBar({
   formId,
   formName,
+  canManage = true,
 }: {
   formId: string;
   formName: string;
+  canManage?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
@@ -23,9 +25,13 @@ export function FormResultsTopBar({
       </div>
 
       <div className="hidden shrink-0 items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
-        <PillLink href={`/admin/forms/${formId}`} icon={<IconEdit />}>Editor</PillLink>
-        <PillLink href={`/admin/forms/${formId}?tab=integrate`} icon={<IconIntegrate />}>Integrações</PillLink>
-        <PillLink href={`/admin/forms/${formId}?tab=share`} icon={<IconShare />}>Compartilhar</PillLink>
+        {canManage && (
+          <>
+            <PillLink href={`/admin/forms/${formId}`} icon={<IconEdit />}>Editor</PillLink>
+            <PillLink href={`/admin/forms/${formId}?tab=integrate`} icon={<IconIntegrate />}>Integrações</PillLink>
+            <PillLink href={`/admin/forms/${formId}?tab=share`} icon={<IconShare />}>Compartilhar</PillLink>
+          </>
+        )}
         <span className="flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5 text-sm font-medium text-white">
           <IconResults />
           Resultados
@@ -33,12 +39,14 @@ export function FormResultsTopBar({
       </div>
 
       <div className="flex flex-1 items-center justify-end">
-        <Link
-          href={`/admin/forms/${formId}`}
-          className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-        >
-          Editar
-        </Link>
+        {canManage && (
+          <Link
+            href={`/admin/forms/${formId}`}
+            className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
+          >
+            Editar
+          </Link>
+        )}
       </div>
     </div>
   );

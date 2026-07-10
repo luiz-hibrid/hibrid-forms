@@ -364,12 +364,12 @@ function Responses({
   return (
     <div className="border-y border-[var(--border)] bg-[var(--card)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-8">
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-nowrap items-center gap-2">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar nas respostas…"
-            className="w-full max-w-[280px] rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm outline-none focus:border-[var(--acc2)]"
+            className="w-[220px] shrink rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 py-2 text-sm outline-none focus:border-[var(--acc2)]"
           />
           <select
             value={statusFilter}
@@ -402,13 +402,6 @@ function Responses({
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
           >
             Baixar CSV
-          </a>
-          <a
-            href={`/api/admin/export-google?form=${formSlug}`}
-            title="CSV de conversões offline (leads qualificados com gclid) para upload no Google Ads"
-            className="rounded-full bg-[var(--text)] px-4 py-2 text-sm font-bold text-white transition hover:opacity-90"
-          >
-            Conversões Google
           </a>
         </div>
       </div>

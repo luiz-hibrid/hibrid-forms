@@ -1871,18 +1871,10 @@ function IntegrateTab({
 
       <IntegrationCard
         title="Google Ads — conversões offline"
-        desc="Nome da ação de conversão no Google Ads. Usado na exportação de leads qualificados (via gclid) para você importar em Ferramentas → Conversões → Uploads."
+        desc="Envio automático da conversão de leads qualificados (via gclid) direto para a conta do cliente pela API do Google Ads."
         icon={<LogoGoogleAds />}
       >
         <div className="grid gap-3 sm:grid-cols-2">
-          <FieldRow label="Nome da conversão (para o CSV)">
-            <input
-              className={inputCls}
-              value={pixel.googleConversionName ?? ""}
-              onChange={(e) => updatePixel({ googleConversionName: e.target.value })}
-              placeholder="Ex.: Lead Qualificado - Hibrid"
-            />
-          </FieldRow>
           <FieldRow label="Customer ID do cliente (envio via API)">
             <input
               className={inputCls}

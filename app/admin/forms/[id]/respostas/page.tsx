@@ -77,7 +77,7 @@ export default async function ResultsPage({
 
   return (
     <main className="min-h-screen bg-[var(--bg)]">
-      <FormResultsTopBar formId={form.id} formName={form.name} />
+      <FormResultsTopBar formId={form.id} formName={form.name} canManage={s.role === "master"} />
       <ResultsView
         formId={form.id}
         formName={form.name}
