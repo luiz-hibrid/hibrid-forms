@@ -516,8 +516,9 @@ function StepBody({
                         height="11"
                         viewBox="0 0 24 24"
                         fill="none"
-                        stroke="#111"
+                        stroke="currentColor"
                         strokeWidth="3.5"
+                        style={{ color: "var(--form-btn-text, #111)" }}
                       >
                         <path
                           strokeLinecap="round"

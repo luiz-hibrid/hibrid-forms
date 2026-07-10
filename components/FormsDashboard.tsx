@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormListItem } from "@/lib/forms-db";
@@ -9,10 +9,12 @@ type SortKey = "recent" | "name" | "responses";
 
 export function FormsDashboard({
   forms,
-  canCreate = false,
+  canManage = false,
+  workspaces = [],
 }: {
   forms: FormListItem[];
-  canCreate?: boolean;
+  canManage?: boolean;
+  workspaces?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -47,13 +49,6 @@ export function FormsDashboard({
     else if (data.error === "selecione_workspace")
       alert("Selecione um cliente no seletor de workspace antes de criar o formulário.");
     else alert("Não foi possível criar o formulário.");
-  }
-
-  async function remove(id: string, name: string) {
-    if (!confirm(`Excluir "${name}" e suas respostas? Não pode ser desfeito.`)) return;
-    const res = await fetch(`/api/admin/forms/${id}`, { method: "DELETE" });
-    if (res.ok) router.refresh();
-    else alert("Não foi possível excluir.");
   }
 
   return (
@@ -120,7 +115,7 @@ export function FormsDashboard({
             </ViewBtn>
           </div>
 
-          {canCreate && (
+          {canManage && (
             <button
               onClick={createForm}
               disabled={creating}
@@ -183,25 +178,14 @@ export function FormsDashboard({
                     >
                       Respostas
                     </Link>
-                    {canCreate && (
-                      <>
-                        <Link
-                          href={`/admin/forms/${f.id}`}
-                          className="rounded-full border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-                        >
-                          Editar
-                        </Link>
-                        <button
-                          onClick={() => remove(f.id, f.name)}
-                          className="ml-auto text-[var(--text3)] hover:text-[var(--red)]"
-                          aria-label="Excluir"
-                        >
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
+                    <div className="ml-auto">
+                      <FormMenu
+                        form={f}
+                        canManage={canManage}
+                        workspaces={workspaces}
+                        onChanged={() => router.refresh()}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -242,18 +226,12 @@ export function FormsDashboard({
                   <Link href={`/admin/forms/${f.id}/respostas`} className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--text)] transition hover:bg-[var(--acc2)]">
                     Respostas
                   </Link>
-                  {canCreate && (
-                    <>
-                      <Link href={`/admin/forms/${f.id}`} className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]">
-                        Editar
-                      </Link>
-                      <button onClick={() => remove(f.id, f.name)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-                    </>
-                  )}
+                  <FormMenu
+                    form={f}
+                    canManage={canManage}
+                    workspaces={workspaces}
+                    onChanged={() => router.refresh()}
+                  />
                 </div>
               </div>
             ))}
@@ -262,6 +240,251 @@ export function FormsDashboard({
       </div>
     </div>
   );
+}
+
+// ---------------------------------------------------------------- Menu de ações
+function FormMenu({
+  form,
+  canManage,
+  workspaces,
+  onChanged,
+}: {
+  form: FormListItem;
+  canManage: boolean;
+  workspaces: { id: string; name: string }[];
+  onChanged: () => void;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setMoving(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+
+  const publicUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/f/${form.slug}` : `/f/${form.slug}`;
+
+  function close() {
+    setOpen(false);
+    setMoving(false);
+  }
+
+  async function duplicate() {
+    close();
+    const res = await fetch(`/api/admin/forms/${form.id}/duplicate`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.id) router.push(`/admin/forms/${data.id}`);
+    else alert("Não foi possível duplicar.");
+  }
+
+  async function moveTo(workspaceId: string) {
+    close();
+    const res = await fetch(`/api/admin/forms/${form.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workspaceId }),
+    });
+    if (res.ok) onChanged();
+    else alert("Não foi possível mover.");
+  }
+
+  async function remove() {
+    close();
+    if (!confirm(`Excluir "${form.name}" e suas respostas? Não pode ser desfeito.`)) return;
+    const res = await fetch(`/api/admin/forms/${form.id}`, { method: "DELETE" });
+    if (res.ok) onChanged();
+    else alert("Não foi possível excluir.");
+  }
+
+  function copyLink() {
+    close();
+    navigator.clipboard?.writeText(publicUrl).catch(() => {});
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Mais opções"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text3)] transition hover:bg-[var(--bg)] hover:text-[var(--text)]"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="1.6" />
+          <circle cx="12" cy="12" r="1.6" />
+          <circle cx="12" cy="19" r="1.6" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[220px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] py-1.5 shadow-xl">
+          {!moving && (
+            <>
+              {canManage && (
+                <MenuItem icon={<IcoEdit />} onClick={() => { close(); router.push(`/admin/forms/${form.id}`); }}>
+                  Editar
+                </MenuItem>
+              )}
+              <MenuItem icon={<IcoPie />} onClick={() => { close(); router.push(`/admin/forms/${form.id}/respostas`); }}>
+                Ver respostas
+              </MenuItem>
+              {canManage && (
+                <>
+                  <MenuItem icon={<IcoShare />} onClick={() => { close(); router.push(`/admin/forms/${form.id}?tab=share`); }}>
+                    Compartilhar
+                  </MenuItem>
+                  <MenuItem icon={<IcoIntegrate />} onClick={() => { close(); router.push(`/admin/forms/${form.id}?tab=integrate`); }}>
+                    Integrar
+                  </MenuItem>
+                </>
+              )}
+
+              <Divider />
+              <MenuItem icon={<IcoLink />} onClick={copyLink}>Copiar link</MenuItem>
+              <MenuItem icon={<IcoExternal />} onClick={() => { close(); window.open(publicUrl, "_blank"); }}>
+                Abrir em nova aba
+              </MenuItem>
+
+              {canManage && (
+                <>
+                  <Divider />
+                  <MenuItem icon={<IcoDuplicate />} onClick={duplicate}>Duplicar</MenuItem>
+                  <MenuItem icon={<IcoMove />} onClick={() => setMoving(true)} chevron>
+                    Mover para workspace
+                  </MenuItem>
+                  <MenuItem icon={<IcoFolder />} disabled>Mover para pasta</MenuItem>
+                  <MenuItem icon={<IcoExport />} onClick={() => { close(); window.location.href = `/api/admin/export?form=${form.slug}`; }}>
+                    Exportar
+                  </MenuItem>
+                  <Divider />
+                  <MenuItem icon={<IcoTrash />} danger onClick={remove}>Excluir</MenuItem>
+                </>
+              )}
+            </>
+          )}
+
+          {moving && (
+            <>
+              <button
+                onClick={() => setMoving(false)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[0.72rem] font-bold uppercase tracking-wider text-[var(--text3)] hover:text-[var(--text)]"
+              >
+                ← Mover para…
+              </button>
+              <Divider />
+              <div className="max-h-[240px] overflow-y-auto">
+                {workspaces.length === 0 && (
+                  <p className="px-3 py-2 text-sm text-[var(--text3)]">Nenhum cliente.</p>
+                )}
+                {workspaces.map((w) => (
+                  <MenuItem key={w.id} icon={<IcoWs />} onClick={() => moveTo(w.id)}>
+                    {w.name}
+                  </MenuItem>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  icon,
+  children,
+  onClick,
+  danger,
+  disabled,
+  chevron,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick?: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+  chevron?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm transition ${
+        disabled
+          ? "cursor-not-allowed text-[var(--text3)] opacity-60"
+          : danger
+          ? "text-[var(--red)] hover:bg-[rgba(255,69,69,0.08)]"
+          : "text-[var(--text)] hover:bg-[var(--bg)]"
+      }`}
+    >
+      <span className="shrink-0 text-[var(--text3)]">{icon}</span>
+      <span className="flex-1 truncate">{children}</span>
+      {chevron && (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--text3)]">
+          <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
+function Divider() {
+  return <div className="my-1 h-px bg-[var(--border)]" />;
+}
+
+const IK = {
+  w: 16,
+  h: 16,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+function IcoEdit() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z" /></svg>);
+}
+function IcoPie() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M21.21 15.89A10 10 0 118 2.83" /><path d="M22 12A10 10 0 0012 2v10z" /></svg>);
+}
+function IcoShare() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>);
+}
+function IcoIntegrate() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><rect x="9" y="2" width="6" height="6" rx="1" /><rect x="2" y="16" width="6" height="6" rx="1" /><rect x="16" y="16" width="6" height="6" rx="1" /><path d="M12 8v4M12 12H5v4M12 12h7v4" /></svg>);
+}
+function IcoLink() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1.5 1.5" /><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1.5-1.5" /></svg>);
+}
+function IcoExternal() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><path d="M15 3h6v6M10 14L21 3" /></svg>);
+}
+function IcoDuplicate() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>);
+}
+function IcoMove() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M4 7h11l-3-3M20 17H9l3 3" /></svg>);
+}
+function IcoFolder() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>);
+}
+function IcoExport() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" /><path d="M12 3v13M7 8l5-5 5 5" /></svg>);
+}
+function IcoTrash() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" /></svg>);
+}
+function IcoWs() {
+  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /></svg>);
 }
 
 function ViewBtn({
