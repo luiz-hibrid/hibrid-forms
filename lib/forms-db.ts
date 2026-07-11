@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import type { FormConfig } from "@/lib/types";
+import type { FormConfig, Field } from "@/lib/types";
+import { DEFAULT_THEME } from "@/lib/theme";
 
 export interface FormRow {
   id: string;
@@ -10,6 +11,18 @@ export interface FormRow {
   created_at?: string;
 }
 
+export interface FormPreview {
+  bg: string;
+  questionColor: string;
+  subtitleColor: string;
+  buttonBg: string;
+  buttonText: string;
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
+  logoUrl?: string;
+}
+
 export interface FormListItem {
   id: string;
   slug: string;
@@ -18,6 +31,7 @@ export interface FormListItem {
   steps: number;
   responses: number;
   created_at: string;
+  preview: FormPreview;
 }
 
 /** Monta o FormConfig completo (usado pelo runtime público). */
@@ -87,15 +101,32 @@ export async function listForms(
     })
   );
 
-  return forms.map((r, i) => ({
-    id: r.id,
-    slug: r.slug,
-    name: r.name,
-    published: r.published,
-    steps: Array.isArray(r.config?.steps) ? r.config.steps.length : 0,
-    responses: counts[i],
-    created_at: r.created_at,
-  }));
+  return forms.map((r, i) => {
+    const cfg = (r.config ?? {}) as Partial<FormConfig>;
+    const theme = { ...DEFAULT_THEME, ...(cfg.theme ?? {}) };
+    const steps = (cfg.steps ?? []) as Field[];
+    const welcome = steps.find((s) => s.type === "welcome") ?? steps[0];
+    return {
+      id: r.id,
+      slug: r.slug,
+      name: r.name,
+      published: r.published,
+      steps: steps.length,
+      responses: counts[i],
+      created_at: r.created_at,
+      preview: {
+        bg: theme.bg,
+        questionColor: theme.questionColor,
+        subtitleColor: theme.subtitleColor,
+        buttonBg: theme.buttonBg,
+        buttonText: theme.buttonText,
+        title: welcome?.title || r.name,
+        subtitle: welcome?.subtitle || "",
+        buttonLabel: welcome?.buttonLabel || "Começar",
+        logoUrl: cfg.logoUrl,
+      },
+    };
+  });
 }
 
 export function slugify(input: string): string {

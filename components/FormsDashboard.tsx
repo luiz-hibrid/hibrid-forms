@@ -3,7 +3,7 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { FormListItem } from "@/lib/forms-db";
+import type { FormListItem, FormPreview } from "@/lib/forms-db";
 
 type SortKey = "recent" | "name" | "responses";
 
@@ -152,11 +152,9 @@ export function FormsDashboard({
               >
                 <Link
                   href={`/admin/forms/${f.id}/respostas`}
-                  className="flex h-28 items-center justify-center rounded-t-2xl bg-[var(--bg)] text-[var(--text3)]"
+                  className="block h-28 overflow-hidden rounded-t-2xl"
                 >
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
-                  </svg>
+                  <FormThumb preview={f.preview} />
                 </Link>
                 <div className="flex flex-1 flex-col p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -204,11 +202,9 @@ export function FormsDashboard({
                 <div className="flex min-w-0 items-center gap-3">
                   <Link
                     href={`/admin/forms/${f.id}/respostas`}
-                    className="flex h-11 w-14 shrink-0 items-center justify-center rounded-lg bg-[var(--bg)] text-[var(--text3)]"
+                    className="h-11 w-14 shrink-0 overflow-hidden rounded-lg"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                      <path d="M9 12h6M9 16h6M9 8h6M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
-                    </svg>
+                    <FormThumb preview={f.preview} compact />
                   </Link>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -485,6 +481,65 @@ function IcoTrash() {
 }
 function IcoWs() {
   return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /></svg>);
+}
+
+// Mini-prévia (print ao vivo) da tela de boas-vindas do formulário
+function FormThumb({ preview: p, compact }: { preview: FormPreview; compact?: boolean }) {
+  return (
+    <div
+      className="relative flex h-full w-full flex-col justify-center overflow-hidden"
+      style={{ background: p.bg, padding: compact ? "6px" : "12px 16px" }}
+    >
+      {p.logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={p.logoUrl}
+          alt=""
+          style={{ position: "absolute", left: compact ? 5 : 10, top: compact ? 4 : 8, height: compact ? 7 : 13, width: "auto", objectFit: "contain" }}
+        />
+      )}
+      <div
+        className="font-black leading-tight"
+        style={{
+          color: p.questionColor,
+          fontSize: compact ? 6 : 12,
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {p.title}
+      </div>
+      {!compact && p.subtitle && (
+        <div
+          className="mt-1 leading-snug"
+          style={{
+            color: p.subtitleColor,
+            fontSize: 8,
+            display: "-webkit-box",
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          {p.subtitle}
+        </div>
+      )}
+      <div
+        className="mt-2 w-fit rounded-full font-bold"
+        style={{
+          background: p.buttonBg,
+          color: p.buttonText,
+          fontSize: compact ? 5 : 8,
+          padding: compact ? "2px 5px" : "4px 9px",
+          marginTop: compact ? 3 : 8,
+        }}
+      >
+        {p.buttonLabel}
+      </div>
+    </div>
+  );
 }
 
 function ViewBtn({
