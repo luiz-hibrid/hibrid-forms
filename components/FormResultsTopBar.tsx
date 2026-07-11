@@ -17,7 +17,7 @@ export function FormResultsTopBar({
           ←
         </Link>
         <Link href="/admin/forms" className="shrink-0">
-          <Logo height={20} />
+          <Logo height={26} />
         </Link>
         <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
           {formName}

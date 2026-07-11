@@ -71,7 +71,7 @@ export default async function LeadDetail({
       <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 py-4 sm:px-8">
         <div className="flex items-center gap-3">
           <Link href="/admin/forms" aria-label="Início" className="transition hover:opacity-80">
-            <Logo height={22} />
+            <Logo height={29} />
           </Link>
           <span className="lbl">Lead</span>
         </div>

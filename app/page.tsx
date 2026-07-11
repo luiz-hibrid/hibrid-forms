@@ -9,7 +9,7 @@ export default async function Home() {
   return (
     <main className="min-h-screen bg-[var(--bg)] flex flex-col">
       <header className="flex items-center justify-between px-5 py-4 sm:px-8">
-        <Logo height={24} />
+        <Logo height={31} />
         <Link
           href="/admin"
           className="rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"

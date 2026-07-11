@@ -33,7 +33,7 @@ export default function AdminLogin() {
     <main className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-5">
       <div className="w-full max-w-[380px]">
         <div className="mb-6 flex items-center justify-between">
-          <Logo height={24} />
+          <Logo height={31} />
           <span className="lbl">Painel interno</span>
         </div>
         <form
