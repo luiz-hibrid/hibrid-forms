@@ -141,4 +141,6 @@ export interface FormConfig {
   pageTitle?: string;
   /** logo exibida no canto superior esquerdo do formulário */
   logoUrl?: string;
+  /** e-mails que recebem aviso de novo lead (separados por vírgula) */
+  notifyEmails?: string;
 }

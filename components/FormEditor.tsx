@@ -205,6 +205,7 @@ export function FormEditor({
   const [pixel, setPixel] = useState<PixelConfig>(cfg.pixel ?? {});
   const [theme, setTheme] = useState<ThemeConfig>(cfg.theme ?? {});
   const [webhookUrl, setWebhookUrl] = useState<string>(cfg.webhookUrl ?? "");
+  const [notifyEmails, setNotifyEmails] = useState<string>(cfg.notifyEmails ?? "");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -445,6 +446,7 @@ export function FormEditor({
       pageTitle: pageTitle.trim() || undefined,
       logoUrl: logoUrl.trim() || undefined,
       webhookUrl: webhookUrl.trim() || undefined,
+      notifyEmails: notifyEmails.trim() || undefined,
       ...(cfg.kanban ? { kanban: cfg.kanban } : {}),
     };
   }
@@ -941,6 +943,8 @@ export function FormEditor({
             updatePixel={updatePixel}
             webhookUrl={webhookUrl}
             setWebhookUrl={setWebhookUrl}
+            notifyEmails={notifyEmails}
+            setNotifyEmails={setNotifyEmails}
           />
         </div>
       )}
@@ -1863,11 +1867,15 @@ function IntegrateTab({
   updatePixel,
   webhookUrl,
   setWebhookUrl,
+  notifyEmails,
+  setNotifyEmails,
 }: {
   pixel: PixelConfig;
   updatePixel: (p: Partial<PixelConfig>) => void;
   webhookUrl: string;
   setWebhookUrl: (v: string) => void;
+  notifyEmails: string;
+  setNotifyEmails: (v: string) => void;
 }) {
   return (
     <div className="mx-auto max-w-[760px] px-6 py-8">
@@ -1988,6 +1996,30 @@ function IntegrateTab({
         </FieldRow>
         <p className="mono mt-1 text-[0.68rem] text-[var(--text3)]">
           Se vazio, usa a URL global (variável CRM_WEBHOOK_URL).
+        </p>
+      </IntegrationCard>
+
+      <IntegrationCard
+        title="Aviso por e-mail (novo lead)"
+        desc="Receba um e-mail a cada lead completo. Envio via Resend."
+        icon={
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <path d="M3 7l9 6 9-6" />
+          </svg>
+        }
+      >
+        <FieldRow label="E-mails para aviso (separe por vírgula)">
+          <input
+            className={inputCls}
+            value={notifyEmails}
+            onChange={(e) => setNotifyEmails(e.target.value)}
+            placeholder="voce@empresa.com, comercial@empresa.com"
+          />
+        </FieldRow>
+        <p className="mono mt-1 text-[0.68rem] text-[var(--text3)]">
+          Dispara só no lead completo. Requer RESEND_API_KEY e RESEND_FROM
+          configurados no servidor. Se vazio, usa LEAD_NOTIFY_EMAILS (global).
         </p>
       </IntegrationCard>
     </div>

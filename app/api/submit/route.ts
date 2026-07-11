@@ -4,6 +4,7 @@ import { sendToCrm, isCrmConfigured } from "@/lib/crm";
 import { getFormBySlug, getWorkspaceIdBySlug } from "@/lib/forms-db";
 import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
 import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
+import { sendLeadEmail, isEmailConfigured } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -193,6 +194,34 @@ export async function POST(request: Request) {
           })
           .eq("id", insertedId);
       }
+    }
+
+    // Notificação por e-mail (Resend) — novo lead
+    const notifyRaw =
+      (fullForm as unknown as { notifyEmails?: string })?.notifyEmails ||
+      process.env.LEAD_NOTIFY_EMAILS ||
+      "";
+    const notifyList = notifyRaw
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (notifyList.length && isEmailConfigured()) {
+      const host = request.headers.get("host");
+      const proto = request.headers.get("x-forwarded-proto") || "https";
+      const leadUrl = host && insertedId ? `${proto}://${host}/admin/${insertedId}` : undefined;
+      await sendLeadEmail({
+        to: notifyList,
+        formName: row.form_name || row.form_slug,
+        nome: row.nome,
+        email: row.email,
+        telefone: row.telefone,
+        score: row.score,
+        tier: row.tier,
+        qualified: row.qualified,
+        answers: row.answers,
+        tracking: row.tracking as Record<string, unknown>,
+        leadUrl,
+      });
     }
 
     return NextResponse.json({ ok: true });
