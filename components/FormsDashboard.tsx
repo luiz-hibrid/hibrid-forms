@@ -7,14 +7,42 @@ import type { FormListItem, FormPreview } from "@/lib/forms-db";
 
 type SortKey = "recent" | "name" | "responses";
 
+export interface RecentLead {
+  id: string;
+  nome: string | null;
+  email: string | null;
+  form_name: string | null;
+  form_slug: string;
+  status: string;
+  tier: string | null;
+  qualified: boolean | null;
+  created_at: string;
+}
+
+function timeAgo(iso: string): string {
+  try {
+    const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (min < 1) return "agora";
+    if (min < 60) return `${min}min`;
+    const h = Math.floor(min / 60);
+    if (h < 24) return `${h}h`;
+    const d = Math.floor(h / 24);
+    return `${d}d`;
+  } catch {
+    return "";
+  }
+}
+
 export function FormsDashboard({
   forms,
   canManage = false,
   workspaces = [],
+  recentLeads = [],
 }: {
   forms: FormListItem[];
   canManage?: boolean;
   workspaces?: { id: string; name: string }[];
+  recentLeads?: RecentLead[];
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -52,7 +80,7 @@ export function FormsDashboard({
   }
 
   return (
-    <div className="mx-auto flex max-w-[1100px] gap-6 px-5 py-8 sm:px-8">
+    <div className="mx-auto flex max-w-[1320px] gap-6 px-5 py-8 sm:px-8">
       {/* Sidebar de pastas */}
       <aside className="hidden w-[190px] shrink-0 md:block">
         <div className="lbl mb-3">Pastas</div>
@@ -233,6 +261,74 @@ export function FormsDashboard({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Últimos leads */}
+      <aside className="hidden w-[280px] shrink-0 xl:block">
+        <RecentLeads leads={recentLeads} />
+      </aside>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Últimos leads
+function RecentLeads({ leads }: { leads: RecentLead[] }) {
+  function initial(l: RecentLead): string {
+    const n = (l.nome || l.email || "?").trim();
+    return n ? n[0].toUpperCase() : "?";
+  }
+  return (
+    <div className="sticky top-6">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="lbl">Últimos leads</span>
+        <span className="mono text-[0.62rem] text-[var(--text3)]">{leads.length}</span>
+      </div>
+      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        {leads.length === 0 && (
+          <p className="px-4 py-8 text-center text-sm text-[var(--text3)]">
+            Nenhum lead ainda.
+          </p>
+        )}
+        {leads.map((l) => (
+          <Link
+            key={l.id}
+            href={`/admin/${l.id}`}
+            className="flex items-start gap-2.5 border-b border-[var(--border)] px-3 py-2.5 transition last:border-0 hover:bg-[var(--bg)]"
+          >
+            <span
+              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold text-white ${
+                l.qualified ? "bg-[#3d7a00]" : "bg-[#8a94a6]"
+              }`}
+            >
+              {initial(l)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate text-sm font-medium text-[var(--text)]">
+                  {l.nome || l.email || "Lead"}
+                </span>
+                <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
+                  {timeAgo(l.created_at)}
+                </span>
+              </div>
+              <div className="truncate text-[0.72rem] text-[var(--text3)]">
+                {l.form_name || l.form_slug}
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                {l.status !== "complete" && (
+                  <span className="mono rounded-full bg-[rgba(0,0,0,0.06)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--text3)]">
+                    Parcial
+                  </span>
+                )}
+                {l.qualified && (
+                  <span className="mono rounded-full bg-[rgba(194,251,141,0.25)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[#3d7a00]">
+                    Qualificado
+                  </span>
+                )}
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
     </div>
   );
