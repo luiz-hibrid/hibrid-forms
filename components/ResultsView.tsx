@@ -235,7 +235,7 @@ function Summary({
     <div>
       {/* KPI band */}
       <div
-        className="grid grid-cols-2 gap-4 rounded-2xl p-6 text-white sm:grid-cols-5"
+        className="grid grid-cols-2 gap-3 rounded-2xl p-4 text-white sm:grid-cols-5 sm:gap-4 sm:p-6"
         style={{ background: "#4b5735" }}
       >
         <Kpi n={views} label="Visualizações" />
@@ -245,14 +245,14 @@ function Summary({
         <Kpi n={avgMs ? fmtDuration(avgMs) : "—"} label="Tempo médio" />
       </div>
 
-      <div className="mt-6 mb-3 flex items-center justify-between">
+      <div className="mt-6 mb-3">
         <span className="lbl">
           {reached ? "Funil de abandono" : "Resumo das respostas"}
         </span>
         {!reached && (
-          <span className="mono text-[0.68rem] text-[var(--text3)]">
-            Ative “Rastrear abandonos” nos Ajustes para ver onde as pessoas param
-          </span>
+          <p className="mt-1 text-[0.72rem] text-[var(--text3)]">
+            Ative “Rastrear abandonos” nos Ajustes para ver onde as pessoas param.
+          </p>
         )}
       </div>
       <div className="grid gap-3">
@@ -266,16 +266,16 @@ function Summary({
               key={field.id}
               className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex-1 truncate font-medium text-[var(--text)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <div className="min-w-0 truncate font-medium text-[var(--text)] sm:flex-1">
                   {field.title}
                 </div>
-                <div className="flex shrink-0 items-center gap-5 text-sm">
-                  <span className="text-[var(--text2)]">
+                <div className="flex shrink-0 items-center gap-2 text-[0.8rem]">
+                  <span className="rounded-full bg-[var(--bg)] px-2.5 py-1 text-[var(--text2)]">
                     {reached ? "Alcançaram" : "Respostas"}{" "}
                     <b className="text-[var(--text)]">{count}</b>
                   </span>
-                  <span className="text-[var(--text2)]">
+                  <span className="rounded-full bg-[var(--bg)] px-2.5 py-1 text-[var(--text2)]">
                     Abandono{" "}
                     <b className={dropoff > 0 ? "text-[var(--red)]" : "text-[var(--text)]"}>
                       {dropoff}
@@ -283,7 +283,7 @@ function Summary({
                   </span>
                 </div>
               </div>
-              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg)]">
+              <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[var(--bg)]">
                 <div className="h-full rounded-full bg-[var(--accent)]" style={{ width: `${pct}%` }} />
               </div>
             </div>
@@ -297,8 +297,8 @@ function Summary({
 function Kpi({ n, label }: { n: React.ReactNode; label: string }) {
   return (
     <div className="text-center">
-      <div className="text-[1.9rem] font-black leading-none">{n}</div>
-      <div className="mt-1.5 text-[0.72rem] opacity-80">{label}</div>
+      <div className="text-[1.55rem] font-black leading-none sm:text-[1.9rem]">{n}</div>
+      <div className="mt-1.5 text-[0.68rem] opacity-80 sm:text-[0.72rem]">{label}</div>
     </div>
   );
 }
