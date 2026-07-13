@@ -1055,9 +1055,7 @@ function StepPreview({
                 className="group flex items-center gap-3 rounded-lg border border-[var(--border)] bg-white/50 px-3 py-2.5"
               >
                 <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center border text-[0.72rem] font-bold text-[var(--text2)] ${
-                    step.type === "single" ? "rounded-full" : "rounded"
-                  } border-[var(--border)]`}
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-[var(--border)] text-[0.72rem] font-bold text-[var(--text2)]"
                 >
                   {String.fromCharCode(65 + i)}
                 </span>

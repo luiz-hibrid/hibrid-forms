@@ -542,11 +542,13 @@ function StepBody({
           <div className="grid gap-2.5">
             {field.options.map((opt, i) => {
               const selected = value === opt.value;
+              const letter =
+                i < 26 ? String.fromCharCode(65 + i) : String(i + 1);
               return (
                 <button
                   key={opt.value}
                   onClick={() => onSelectSingle(field, opt.value)}
-                  className={`group flex items-center justify-between rounded-lg border px-4 py-3.5 text-left transition-all duration-150 ${
+                  className={`group flex items-center gap-3 rounded-lg border px-3.5 py-3.5 text-left transition-all duration-150 ${
                     selected
                       ? "hf-opt-selected"
                       : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb] hover:-translate-y-[2px]"
@@ -554,41 +556,27 @@ function StepBody({
                   style={{ animationDelay: `${i * 30}ms` }}
                 >
                   <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[0.8rem] font-bold transition"
+                    style={
+                      selected
+                        ? {
+                            background: "var(--form-btn-bg, var(--accent))",
+                            color: "var(--form-btn-text, #111)",
+                            borderColor: "transparent",
+                          }
+                        : {
+                            borderColor: "var(--border)",
+                            color: "var(--form-answer, var(--text))",
+                          }
+                    }
+                  >
+                    {letter}
+                  </span>
+                  <span
                     className="font-medium"
                     style={{ color: "var(--form-answer, var(--text))" }}
                   >
                     {opt.label}
-                  </span>
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full border transition ${
-                      selected ? "" : "border-[var(--border)] group-hover:border-[#bbb]"
-                    }`}
-                    style={
-                      selected
-                        ? {
-                            borderColor: "var(--form-btn-bg, var(--accent))",
-                            background: "var(--form-btn-bg, var(--accent))",
-                          }
-                        : undefined
-                    }
-                  >
-                    {selected && (
-                      <svg
-                        width="11"
-                        height="11"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.5"
-                        style={{ color: "var(--form-btn-text, #111)" }}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    )}
                   </span>
                 </button>
               );
