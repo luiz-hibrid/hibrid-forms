@@ -92,6 +92,28 @@ export default async function LeadDetail({
                 {data.email && <div>{data.email}</div>}
                 {data.telefone && <div className="mono">{data.telefone}</div>}
               </div>
+              {data.telefone &&
+                (() => {
+                  const d = String(data.telefone).replace(/\D/g, "");
+                  const num = d.length <= 11 ? `55${d}` : d;
+                  const first = (data.nome || "").trim().split(" ")[0] || "";
+                  const msg = encodeURIComponent(
+                    `Olá${first ? ` ${first}` : ""}! Recebi seu contato pelo formulário da Hibrid.`
+                  );
+                  return (
+                    <a
+                      href={`https://wa.me/${num}?text=${msg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-2 text-sm font-bold text-white transition hover:brightness-95"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.8 14.03c-.24.68-1.42 1.31-1.95 1.35-.5.05-.97.24-3.27-.68-2.77-1.09-4.53-3.92-4.67-4.11-.14-.19-1.13-1.5-1.13-2.86 0-1.36.71-2.03.96-2.31.25-.27.55-.34.73-.34.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.56.81 1.96.88 2.1.07.14.12.31.02.5-.09.19-.14.31-.28.47-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.27.71 1.17 1.53 1.9 1.05.93 1.93 1.22 2.21 1.36.28.14.44.12.6-.07.17-.19.69-.81.87-1.09.18-.28.36-.23.61-.14.25.09 1.6.75 1.87.89.28.14.46.21.53.32.07.12.07.68-.17 1.36z" />
+                      </svg>
+                      Falar no WhatsApp
+                    </a>
+                  );
+                })()}
             </div>
             <div className="text-right">
               <div className="text-[2.4rem] font-black leading-none tracking-tight text-[var(--text)]">
