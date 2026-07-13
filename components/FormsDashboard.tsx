@@ -80,7 +80,7 @@ export function FormsDashboard({
   }
 
   return (
-    <div className="mx-auto flex max-w-[1320px] gap-6 px-5 py-8 sm:px-8">
+    <div className="mx-auto flex max-w-[1100px] gap-6 px-5 py-8 sm:px-8">
       {/* Sidebar de pastas */}
       <aside className="hidden w-[190px] shrink-0 md:block">
         <div className="lbl mb-3">Pastas</div>
@@ -261,12 +261,10 @@ export function FormsDashboard({
             ))}
           </div>
         )}
-      </div>
 
-      {/* Últimos leads */}
-      <aside className="hidden w-[280px] shrink-0 xl:block">
+        {/* Últimos leads */}
         <RecentLeads leads={recentLeads} />
-      </aside>
+      </div>
     </div>
   );
 }
@@ -277,26 +275,23 @@ function RecentLeads({ leads }: { leads: RecentLead[] }) {
     const n = (l.nome || l.email || "?").trim();
     return n ? n[0].toUpperCase() : "?";
   }
+  if (leads.length === 0) return null;
+
   return (
-    <div className="sticky top-6">
+    <div className="mt-10">
       <div className="mb-3 flex items-center justify-between">
         <span className="lbl">Últimos leads</span>
         <span className="mono text-[0.62rem] text-[var(--text3)]">{leads.length}</span>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-        {leads.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-[var(--text3)]">
-            Nenhum lead ainda.
-          </p>
-        )}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {leads.map((l) => (
           <Link
             key={l.id}
             href={`/admin/${l.id}`}
-            className="flex items-start gap-2.5 border-b border-[var(--border)] px-3 py-2.5 transition last:border-0 hover:bg-[var(--bg)]"
+            className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3.5 py-3 transition hover:border-[#bbb]"
           >
             <span
-              className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[0.7rem] font-bold text-white ${
+              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-bold text-white ${
                 l.qualified ? "bg-[#3d7a00]" : "bg-[#8a94a6]"
               }`}
             >
@@ -314,7 +309,7 @@ function RecentLeads({ leads }: { leads: RecentLead[] }) {
               <div className="truncate text-[0.72rem] text-[var(--text3)]">
                 {l.form_name || l.form_slug}
               </div>
-              <div className="mt-1 flex items-center gap-1.5">
+              <div className="mt-1.5 flex items-center gap-1.5">
                 {l.status !== "complete" && (
                   <span className="mono rounded-full bg-[rgba(0,0,0,0.06)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--text3)]">
                     Parcial
