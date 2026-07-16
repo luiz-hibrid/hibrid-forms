@@ -410,6 +410,7 @@ function Responses({
 
           <thead>
             <tr className="border-b border-[var(--border)] bg-[var(--bg)] text-left">
+              <Th></Th>
               <Th>
                 <HdrIcon d="M12 8v4l3 2" circle /> Enviado
               </Th>
@@ -444,13 +445,26 @@ function Responses({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={steps.length + 9} className="px-4 py-12 text-center text-[var(--text2)]">
+                <td colSpan={steps.length + 10} className="px-4 py-12 text-center text-[var(--text2)]">
                   Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
                 </td>
               </tr>
             )}
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--bg)]">
+                <td className="px-3 py-3 text-center">
+                  <Link
+                    href={`/admin/${r.id}`}
+                    aria-label="Ver lead"
+                    title="Ver lead"
+                    className="inline-flex text-[var(--text3)] transition hover:text-[var(--text)]"
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </Link>
+                </td>
                 <td className="whitespace-nowrap px-4 py-3 mono text-[0.72rem] text-[var(--text3)]">
                   {fmtDate(r.created_at)}
                 </td>
@@ -479,8 +493,7 @@ function Responses({
                   <GadsBadge status={r.gads_status} error={r.gads_error} qualified={r.qualified} />
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-right">
-                  <Link href={`/admin/${r.id}`} className="mono text-[0.72rem] text-[var(--text2)] hover:text-[var(--text)] hover:underline">ver</Link>
-                  <button onClick={() => remove(r.id)} className="ml-3 text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">✕</button>
+                  <button onClick={() => remove(r.id)} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label="Excluir">✕</button>
                 </td>
               </tr>
             ))}
