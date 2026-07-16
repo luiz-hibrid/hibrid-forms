@@ -318,6 +318,8 @@ function Responses({
   const [q, setQ] = useState("");
   const [campaign, setCampaign] = useState("");
   const [statusFilter, setStatusFilter] = useState<"complete" | "partial" | "all">("complete");
+  const [viewId, setViewId] = useState<string | null>(null);
+  const viewed = submissions.find((s) => s.id === viewId) ?? null;
 
   const partialCount = useMemo(
     () => submissions.filter((s) => s.status !== "complete").length,
@@ -453,8 +455,8 @@ function Responses({
             {rows.map((r) => (
               <tr key={r.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--bg)]">
                 <td className="px-3 py-3 text-center">
-                  <Link
-                    href={`/admin/${r.id}`}
+                  <button
+                    onClick={() => setViewId(r.id)}
                     aria-label="Ver lead"
                     title="Ver lead"
                     className="inline-flex text-[var(--text3)] transition hover:text-[var(--text)]"
@@ -463,7 +465,7 @@ function Responses({
                       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
                       <circle cx="12" cy="12" r="3" />
                     </svg>
-                  </Link>
+                  </button>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 mono text-[0.72rem] text-[var(--text3)]">
                   {fmtDate(r.created_at)}
@@ -499,6 +501,124 @@ function Responses({
             ))}
           </tbody>
         </table>
+      </div>
+
+      {viewed && (
+        <LeadQuickView submission={viewed} steps={steps} onClose={() => setViewId(null)} />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Lightbox de leitura
+function LeadQuickView({
+  submission,
+  steps,
+  onClose,
+}: {
+  submission: Submission;
+  steps: Field[];
+  onClose: () => void;
+}) {
+  const wa = (() => {
+    if (!submission.telefone) return null;
+    const d = String(submission.telefone).replace(/\D/g, "");
+    const num = d.length <= 11 ? `55${d}` : d;
+    const first = (submission.nome || "").trim().split(" ")[0] || "";
+    const msg = encodeURIComponent(
+      `Olá${first ? ` ${first}` : ""}! Recebi seu contato pelo formulário da Hibrid.`
+    );
+    return `https://wa.me/${num}?text=${msg}`;
+  })();
+
+  return (
+    <div
+      className="lb-overlay fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="lb-panel flex max-h-[90vh] w-full max-w-[720px] flex-col overflow-hidden rounded-t-2xl bg-[var(--card)] shadow-2xl sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-[1.3rem] font-black tracking-tight text-[var(--text)]">
+              {submission.nome || "Lead sem nome"}
+            </h2>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-[var(--text2)]">
+              {submission.email && <span className="truncate">{submission.email}</span>}
+              {submission.telefone && <span className="mono">{submission.telefone}</span>}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="text-right">
+              <div className="text-[1.7rem] font-black leading-none text-[var(--text)]">
+                {submission.score}
+              </div>
+              <div className="lbl mt-0.5">Score</div>
+            </div>
+            <button onClick={onClose} className="text-[var(--text3)] hover:text-[var(--text)]" aria-label="Fechar">✕</button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-2.5">
+          <TierBadge tier={submission.tier} />
+          <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+            {submission.status === "complete" ? "Completa" : "Parcial"}
+          </span>
+          <GadsBadge status={submission.gads_status} error={submission.gads_error} qualified={submission.qualified} />
+          {wa && (
+            <a
+              href={wa}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-95"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.8 14.03c-.24.68-1.42 1.31-1.95 1.35-.5.05-.97.24-3.27-.68-2.77-1.09-4.53-3.92-4.67-4.11-.14-.19-1.13-1.5-1.13-2.86 0-1.36.71-2.03.96-2.31.25-.27.55-.34.73-.34.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.56.81 1.96.88 2.1.07.14.12.31.02.5-.09.19-.14.31-.28.47-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.27.71 1.17 1.53 1.9 1.05.93 1.93 1.22 2.21 1.36.28.14.44.12.6-.07.17-.19.69-.81.87-1.09.18-.28.36-.23.61-.14.25.09 1.6.75 1.87.89z" />
+              </svg>
+              WhatsApp
+            </a>
+          )}
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5">
+          <div className="divide-y divide-[var(--border)]">
+            {steps.map((s, i) => (
+              <div key={s.id} className="flex items-start gap-3 py-3">
+                <NumberedIcon type={s.type} n={i + 1} />
+                <div className="min-w-0">
+                  <div className="font-medium text-[var(--text)]">{s.title}</div>
+                  <div className="mt-0.5 text-[var(--text2)]">
+                    {answerText(s, submission.answers?.[s.id])}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {(submission.tracking?.utm_source ||
+            submission.tracking?.utm_campaign ||
+            submission.tracking?.gclid) && (
+            <div className="mt-4 rounded-xl border border-[var(--border)] p-3">
+              <div className="mono mb-2 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">Origem</div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--text2)]">
+                {submission.tracking?.utm_source && <span>Fonte: <b className="text-[var(--text)]">{submission.tracking.utm_source}</b></span>}
+                {submission.tracking?.utm_campaign && <span>Campanha: <b className="text-[var(--text)]">{submission.tracking.utm_campaign}</b></span>}
+                {submission.tracking?.gclid && <span className="mono text-[0.7rem]">gclid ✓</span>}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center justify-between">
+            <span className="mono text-[0.62rem] text-[var(--text3)]">
+              #{submission.id.slice(0, 12).toUpperCase()} · {fmtDate(submission.created_at)}
+            </span>
+            <Link href={`/admin/${submission.id}`} className="mono text-[0.72rem] text-[var(--text2)] hover:text-[var(--text)] hover:underline">
+              abrir página completa →
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

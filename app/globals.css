@@ -38,6 +38,21 @@
   box-shadow: 0 0 0 1px var(--form-btn-bg, var(--accent));
 }
 
+/* Lightbox (detalhe do lead) — entrada com fade + spring */
+@keyframes lbOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lbPanelIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.lb-overlay { animation: lbOverlayIn 0.18s ease-out both; }
+.lb-panel { animation: lbPanelIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .lb-overlay, .lb-panel { animation: none; }
+}
+
 * {
   box-sizing: border-box;
 }
