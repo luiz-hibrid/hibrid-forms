@@ -6,6 +6,7 @@ import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
 import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
 import { sendLeadEmail, isEmailConfigured } from "@/lib/email";
 import { deviceFromUa } from "@/lib/device";
+import { logConversionEvents, type LogStatus } from "@/lib/conversion-log";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -87,6 +88,23 @@ export async function POST(request: Request) {
     const fullForm = await getFormBySlug(row.form_slug);
     const formWebhook = (fullForm as unknown as { webhookUrl?: string })?.webhookUrl;
 
+    // Histórico de disparos desta submissão — gravado de uma vez no fim.
+    const logEntries: Parameters<typeof logConversionEvents>[0] = [];
+    const track = (
+      destination: "google_ads" | "meta_capi" | "ga4" | "crm" | "email",
+      status: LogStatus,
+      detail: Record<string, unknown> = {}
+    ) =>
+      logEntries.push({
+        submissionId: insertedId,
+        formSlug: row.form_slug,
+        workspaceId,
+        destination,
+        trigger: "automatic",
+        status,
+        detail,
+      });
+
     // Envio ao CRM (payload estruturado e padronizado)
     if (isCrmConfigured(formWebhook)) {
       const crmPayload = {
@@ -116,6 +134,10 @@ export async function POST(request: Request) {
           })
           .eq("id", insertedId);
       }
+      track("crm", result.ok ? "sent" : "failed", {
+        tentativas: result.attempts,
+        error: result.error ?? undefined,
+      });
       if (!result.ok) {
         console.error("[Hibrid Forms] Falha ao enviar ao CRM:", result.error);
       }
@@ -131,7 +153,7 @@ export async function POST(request: Request) {
           request.headers.get("x-real-ip") ||
           undefined;
         const ua = request.headers.get("user-agent") || undefined;
-        await Promise.allSettled([
+        const [metaRes, ga4Res] = await Promise.all([
           sendMetaCapi(pixel, {
             eventId: pe.event_id,
             email: row.email,
@@ -142,14 +164,26 @@ export async function POST(request: Request) {
             ua,
             sourceUrl: pe.event_source_url,
             value: row.score,
-          }),
+          }).catch((err) => ({ ok: false as const, error: String(err) })),
           sendGa4(pixel, {
             gaCookie: pe.ga,
             value: row.score,
             tier: row.tier ?? undefined,
             eventId: pe.event_id,
-          }),
+          }).catch((err) => ({ ok: false as const, error: String(err) })),
         ]);
+
+        const logPixel = (dest: "meta_capi" | "ga4", r: typeof metaRes) => {
+          if (r.ok) return track(dest, "sent", { event_id: pe.event_id });
+          if ("skipped" in r && r.skipped)
+            return track(dest, "skipped", { motivo: r.reason });
+          track(dest, "failed", {
+            error: "error" in r ? r.error : "erro",
+            event_id: pe.event_id,
+          });
+        };
+        logPixel("meta_capi", metaRes);
+        logPixel("ga4", ga4Res);
       }
     }
 
@@ -186,6 +220,16 @@ export async function POST(request: Request) {
         if (!result.ok) console.error("[Hibrid Forms] Google Ads conversão:", result.error);
       }
 
+      if (gadsStatus) {
+        track("google_ads", gadsStatus as LogStatus, {
+          error: gadsError ?? undefined,
+          gclid: gclid ? `${gclid.slice(0, 12)}…` : undefined,
+          conversion_action_id: fullForm?.pixel?.googleConversionActionId,
+          customer_id: fullForm?.pixel?.googleCustomerId,
+          valor: row.score,
+        });
+      }
+
       if (supabase && insertedId) {
         await supabase
           .from("submissions")
@@ -211,7 +255,7 @@ export async function POST(request: Request) {
       const host = request.headers.get("host");
       const proto = request.headers.get("x-forwarded-proto") || "https";
       const leadUrl = host && insertedId ? `${proto}://${host}/admin/${insertedId}` : undefined;
-      await sendLeadEmail({
+      const mail = await sendLeadEmail({
         to: notifyList,
         formName: row.form_name || row.form_slug,
         nome: row.nome,
@@ -224,7 +268,14 @@ export async function POST(request: Request) {
         tracking: row.tracking as Record<string, unknown>,
         leadUrl,
       });
+      track("email", mail.ok ? "sent" : "failed", {
+        destinatarios: notifyList,
+        error: mail.error,
+      });
     }
+
+    // grava o histórico de tudo que foi disparado nesta submissão
+    await logConversionEvents(logEntries);
 
     return NextResponse.json({ ok: true });
   } catch (err) {

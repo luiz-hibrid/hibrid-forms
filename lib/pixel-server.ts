@@ -26,8 +26,18 @@ interface EventInput {
 }
 
 /** Meta Conversions API (server-side) com dedup por event_id. */
-export async function sendMetaCapi(pixel: PixelConfig, e: EventInput) {
-  if (!pixel.metaPixelId || !pixel.metaCapiToken) return;
+/** Resultado de um envio server-side, para o log de conversões. */
+export type PixelResult =
+  | { ok: true }
+  | { ok: false; skipped: true; reason: string }
+  | { ok: false; skipped?: false; error: string };
+
+export async function sendMetaCapi(
+  pixel: PixelConfig,
+  e: EventInput
+): Promise<PixelResult> {
+  if (!pixel.metaPixelId || !pixel.metaCapiToken)
+    return { ok: false, skipped: true, reason: "Pixel ID ou token da CAPI não configurados" };
 
   const user_data: Record<string, unknown> = {};
   if (e.email) user_data.em = [sha256(e.email.trim().toLowerCase())];
@@ -65,10 +75,14 @@ export async function sendMetaCapi(pixel: PixelConfig, e: EventInput) {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      console.error("[Hibrid Forms] Meta CAPI erro:", res.status, await res.text());
+      const text = await res.text();
+      console.error("[Hibrid Forms] Meta CAPI erro:", res.status, text);
+      return { ok: false, error: `HTTP ${res.status}: ${text.slice(0, 300)}` };
     }
+    return { ok: true };
   } catch (err) {
     console.error("[Hibrid Forms] Meta CAPI falhou:", err);
+    return { ok: false, error: String(err) };
   }
 }
 
@@ -76,8 +90,9 @@ export async function sendMetaCapi(pixel: PixelConfig, e: EventInput) {
 export async function sendGa4(
   pixel: PixelConfig,
   opts: { gaCookie?: string; value?: number; tier?: string; eventId: string }
-) {
-  if (!pixel.ga4Id || !pixel.ga4ApiSecret) return;
+): Promise<PixelResult> {
+  if (!pixel.ga4Id || !pixel.ga4ApiSecret)
+    return { ok: false, skipped: true, reason: "Measurement ID ou API secret não configurados" };
 
   // client_id a partir do cookie _ga (GA1.1.XXXX.YYYY) ou aleatório
   let clientId = "";
@@ -105,8 +120,13 @@ export async function sendGa4(
     ],
   };
   try {
-    await fetch(url, { method: "POST", body: JSON.stringify(body) });
+    const res = await fetch(url, { method: "POST", body: JSON.stringify(body) });
+    // O Measurement Protocol responde 204 sem corpo; erro de payload é silencioso
+    // e só aparece no endpoint de debug — aqui dá pra checar o HTTP.
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+    return { ok: true };
   } catch (err) {
     console.error("[Hibrid Forms] GA4 MP falhou:", err);
+    return { ok: false, error: String(err) };
   }
 }
