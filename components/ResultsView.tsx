@@ -8,6 +8,7 @@ import { TierBadge } from "@/components/TierBadge";
 import { FieldTypeIcon, FIELD_META } from "@/components/FieldTypeIcon";
 import { BrazilGeoMap } from "@/components/BrazilGeoMap";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { OptimizePanel } from "@/components/OptimizePanel";
 
 interface Submission {
   id: string;
@@ -144,7 +145,7 @@ export function ResultsView({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<
-    "summary" | "responses" | "map" | "kanban"
+    "summary" | "responses" | "map" | "kanban" | "optimize"
   >("summary");
 
   const completes = useMemo(
@@ -162,6 +163,7 @@ export function ResultsView({
         <SubTab active={tab === "responses"} onClick={() => setTab("responses")} icon={<IcoTable />}>Respostas</SubTab>
         <SubTab active={tab === "map"} onClick={() => setTab("map")} icon={<IcoPin />}>Mapa</SubTab>
         <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")} icon={<IcoColumns />}>Kanban</SubTab>
+        <SubTab active={tab === "optimize"} onClick={() => setTab("optimize")} icon={<IcoSpark />}>Otimizar</SubTab>
       </div>
 
       {tab === "summary" && (
@@ -194,6 +196,7 @@ export function ResultsView({
         </div>
       )}
       {tab === "map" && <BrazilGeoMap submissions={completes} />}
+      {tab === "optimize" && <OptimizePanel formId={formId} steps={steps} />}
       {tab === "kanban" && (
         <Kanban
           formId={formId}
@@ -1219,6 +1222,14 @@ function IcoColumns() {
       <rect x="3" y="4" width="5" height="16" rx="1" />
       <rect x="9.5" y="4" width="5" height="16" rx="1" />
       <rect x="16" y="4" width="5" height="16" rx="1" />
+    </svg>
+  );
+}
+function IcoSpark() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+      <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
     </svg>
   );
 }
