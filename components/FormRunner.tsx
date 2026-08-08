@@ -18,6 +18,7 @@ const TRACKING_KEYS = [
   "utm_content",
   "gclid",
   "fbclid",
+  "adgroup",
 ];
 
 function maskPhone(v: string): string {

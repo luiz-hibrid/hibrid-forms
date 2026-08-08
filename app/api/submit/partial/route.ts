@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getWorkspaceIdBySlug } from "@/lib/forms-db";
+import { deviceFromUa } from "@/lib/device";
 
 export const runtime = "nodejs";
 
@@ -59,6 +60,7 @@ export async function POST(request: Request) {
         geo_city: geoCity ? decodeURIComponent(geoCity) : null,
         geo_lat: h.get("x-vercel-ip-latitude") || null,
         geo_lng: h.get("x-vercel-ip-longitude") || null,
+        device: deviceFromUa(h.get("user-agent")),
       });
     }
 

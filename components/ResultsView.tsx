@@ -7,6 +7,7 @@ import type { Field } from "@/lib/types";
 import { TierBadge } from "@/components/TierBadge";
 import { FieldTypeIcon, FIELD_META } from "@/components/FieldTypeIcon";
 import { BrazilGeoMap } from "@/components/BrazilGeoMap";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 
 interface Submission {
   id: string;
@@ -27,6 +28,8 @@ interface Submission {
   gads_status: string | null;
   gads_error: string | null;
   gads_sent_at: string | null;
+  device?: string | null;
+  duration_ms?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -162,15 +165,27 @@ export function ResultsView({
       </div>
 
       {tab === "summary" && (
-        <Summary
-          steps={steps}
+        <AnalyticsDashboard
           submissions={completes}
           views={stats.views}
           starts={stats.starts}
-          responses={responses}
-          completion={completion}
           avgMs={stats.avgMs ?? null}
-          reached={reached ?? null}
+          funnel={
+            <Funnel
+              steps={steps}
+              submissions={completes}
+              starts={stats.starts}
+              responses={responses}
+              reached={reached ?? null}
+            />
+          }
+          rail={
+            <LeadsRail
+              submissions={submissions}
+              steps={steps}
+              onSeeAll={() => setTab("responses")}
+            />
+          }
         />
       )}
       {tab === "responses" && (
@@ -201,23 +216,17 @@ function fmtDuration(ms: number): string {
   return r ? `${m}m ${r}s` : `${m}m`;
 }
 
-function Summary({
+function Funnel({
   steps,
   submissions,
-  views,
   starts,
   responses,
-  completion,
-  avgMs,
   reached,
 }: {
   steps: Field[];
   submissions: Submission[];
-  views: number;
   starts: number;
   responses: number;
-  completion: number;
-  avgMs: number | null;
   reached: Record<string, number> | null;
 }) {
   // Com rastreio de abandono: usa sessões que alcançaram cada pergunta.
@@ -233,19 +242,7 @@ function Summary({
 
   return (
     <div>
-      {/* KPI band */}
-      <div
-        className="grid grid-cols-2 gap-3 rounded-2xl p-4 text-white sm:grid-cols-5 sm:gap-4 sm:p-6"
-        style={{ background: "#4b5735" }}
-      >
-        <Kpi n={views} label="Visualizações" />
-        <Kpi n={starts} label="Iniciaram" />
-        <Kpi n={responses} label="Respostas" />
-        <Kpi n={`${completion}%`} label="Taxa de conclusão" />
-        <Kpi n={avgMs ? fmtDuration(avgMs) : "—"} label="Tempo médio" />
-      </div>
-
-      <div className="mt-6 mb-3">
+      <div className="mb-3">
         <span className="lbl">
           {reached ? "Funil de abandono" : "Resumo das respostas"}
         </span>
@@ -299,6 +296,110 @@ function Kpi({ n, label }: { n: React.ReactNode; label: string }) {
     <div className="text-center">
       <div className="text-[1.55rem] font-black leading-none sm:text-[1.9rem]">{n}</div>
       <div className="mt-1.5 text-[0.68rem] opacity-80 sm:text-[0.72rem]">{label}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Rail de respostas
+// Passagem rápida pelos leads, ao lado do dashboard. Abre o mesmo lightbox
+// da aba Respostas ao clicar num card.
+function LeadsRail({
+  submissions,
+  steps,
+  onSeeAll,
+}: {
+  submissions: Submission[];
+  steps: Field[];
+  onSeeAll: () => void;
+}) {
+  const [filter, setFilter] = useState<"complete" | "all">("complete");
+  const [viewId, setViewId] = useState<string | null>(null);
+  const viewed = submissions.find((s) => s.id === viewId) ?? null;
+
+  const rows = useMemo(
+    () =>
+      submissions
+        .filter((s) => (filter === "complete" ? s.status === "complete" : true))
+        .slice(0, 40),
+    [submissions, filter]
+  );
+
+  return (
+    <div className="dash-in rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <header className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
+        <span className="lbl">Respostas</span>
+        <div className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] p-0.5">
+          {(["complete", "all"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`mono rounded-full px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-wider transition ${
+                filter === f
+                  ? "bg-[var(--dark)] text-white"
+                  : "text-[var(--text3)] hover:text-[var(--text)]"
+              }`}
+            >
+              {f === "complete" ? "Completas" : "Todas"}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      <div className="max-h-[820px] overflow-y-auto">
+        {rows.length === 0 && (
+          <p className="px-4 py-10 text-center text-[0.78rem] text-[var(--text3)]">
+            Nenhuma resposta ainda.
+          </p>
+        )}
+        {rows.map((r) => (
+          <button
+            key={r.id}
+            onClick={() => setViewId(r.id)}
+            className="block w-full border-b border-[var(--border)] px-4 py-3 text-left transition last:border-0 hover:bg-[var(--bg)]"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="truncate text-[0.85rem] font-bold text-[var(--text)]">
+                {r.nome || "Sem nome"}
+              </span>
+              <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
+                {relativeTime(r.created_at)}
+              </span>
+            </div>
+            {r.email && (
+              <div className="mt-0.5 truncate text-[0.72rem] text-[var(--text2)]">{r.email}</div>
+            )}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {r.status !== "complete" && (
+                <span className="mono rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
+                  Parcial
+                </span>
+              )}
+              <TierBadge tier={r.tier} />
+              {r.tracking?.utm_campaign && (
+                <span
+                  className="mono max-w-[130px] truncate rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]"
+                  title={r.tracking.utm_campaign}
+                >
+                  {r.tracking.utm_campaign}
+                </span>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <footer className="border-t border-[var(--border)] px-4 py-3">
+        <button
+          onClick={onSeeAll}
+          className="mono w-full rounded-full bg-[var(--dark)] px-4 py-2 text-[0.62rem] font-bold uppercase tracking-wider text-white transition hover:bg-[var(--text2)]"
+        >
+          Ver tabela completa
+        </button>
+      </footer>
+
+      {viewed && (
+        <LeadQuickView submission={viewed} steps={steps} onClose={() => setViewId(null)} />
+      )}
     </div>
   );
 }
