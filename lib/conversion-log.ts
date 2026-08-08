@@ -100,5 +100,7 @@ export const TRIGGER_LABEL: Record<string, string> = {
 export const STATUS_LABEL: Record<string, string> = {
   sent: "Enviado",
   failed: "Falhou",
-  skipped: "Ignorado",
+  // "Não enviado" e não "Ignorado": o sistema não desprezou nada — ele parou
+  // antes de chamar a API porque faltava condição, e o motivo está no detalhe.
+  skipped: "Não enviado",
 };

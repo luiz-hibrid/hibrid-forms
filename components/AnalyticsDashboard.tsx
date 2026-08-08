@@ -800,7 +800,7 @@ function GadsHealth({
   const cells = [
     { n: sent, label: "Enviadas", color: "var(--accent)", status: "sent" },
     { n: failed, label: "Falharam", color: "var(--red)", status: "failed" },
-    { n: skipped, label: "Ignoradas", color: "#d3d7cb", status: "skipped" },
+    { n: skipped, label: "Não enviadas", color: "#d3d7cb", status: "skipped" },
     { n: pending, label: "Pendentes", color: "#8a9a72", status: undefined },
   ];
   return (
