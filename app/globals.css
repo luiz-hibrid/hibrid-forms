@@ -166,3 +166,56 @@ body {
     animation: none;
   }
 }
+
+/* ============================================================
+   Dashboard analítico — entrada dos gráficos
+   ============================================================ */
+@keyframes dashPanelIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes dashGrowX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes dashGrowY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+@keyframes dashFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dashDraw {
+  from { stroke-dashoffset: 1200; }
+  to   { stroke-dashoffset: 0; }
+}
+
+.dash-in { animation: dashPanelIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.dash-bar {
+  transform-origin: left center;
+  animation: dashGrowX 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dash-col {
+  transform-origin: bottom center;
+  animation: dashGrowY 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dash-fade { animation: dashFadeIn 0.6s ease-out 0.25s both; }
+.dash-line {
+  stroke-dasharray: 1200;
+  animation: dashDraw 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* sem stroke-dasharray aqui: CSS venceria o atributo que define cada fatia */
+.dash-ring { animation: dashFadeIn 0.5s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dash-in,
+  .dash-bar,
+  .dash-col,
+  .dash-fade,
+  .dash-line,
+  .dash-ring {
+    animation: none;
+  }
+  .dash-line { stroke-dashoffset: 0; }
+}
