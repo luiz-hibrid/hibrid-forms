@@ -48,7 +48,7 @@ function GadsBadge({
   const map: Record<string, { label: string; icon: string; cls: string }> = {
     sent: { label: "Enviado", icon: "✓", cls: "bg-[rgba(194,251,141,0.25)] text-[#3d7a00]" },
     failed: { label: "Falhou", icon: "✗", cls: "bg-[rgba(220,38,38,0.12)] text-[var(--red)]" },
-    skipped: { label: "Ignorado", icon: "•", cls: "bg-[var(--bg)] text-[var(--text3)]" },
+    skipped: { label: "Não enviado", icon: "•", cls: "bg-[var(--bg)] text-[var(--text3)]" },
   };
   const m = status ? map[status] : null;
   if (!m) {
@@ -1116,7 +1116,7 @@ function LeadModal({
               )}
               {submission.gads_status === "skipped" && submission.gads_error && (
                 <div className="mt-1 text-[0.7rem] text-[var(--text3)]">
-                  Não enviado: {submission.gads_error}
+                  Motivo: {submission.gads_error}
                 </div>
               )}
             </div>

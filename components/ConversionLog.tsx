@@ -209,16 +209,18 @@ export function ConversionLogTable({
         {!status && !destination && (data?.events.length ?? 0) > 0 && (
           <div className="mono flex flex-wrap gap-4 border-b border-[var(--border)] px-5 py-3 text-[0.65rem] uppercase tracking-wider text-[var(--text3)]">
             <span>
-              <b className="text-[var(--text)]">{counts.sent}</b> enviados
+              <b className="text-[var(--text)]">{counts.sent}</b>{" "}
+              {counts.sent === 1 ? "enviado" : "enviados"}
             </span>
             <span>
               <b className={counts.failed ? "text-[var(--red)]" : "text-[var(--text)]"}>
                 {counts.failed}
               </b>{" "}
-              falharam
+              {counts.failed === 1 ? "falhou" : "falharam"}
             </span>
             <span>
-              <b className="text-[var(--text)]">{counts.skipped}</b> ignorados
+              <b className="text-[var(--text)]">{counts.skipped}</b>{" "}
+              {counts.skipped === 1 ? "não enviado" : "não enviados"}
             </span>
           </div>
         )}
