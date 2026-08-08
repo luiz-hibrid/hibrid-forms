@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/auth";
+import { isAuthenticated, getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getFormBySlug } from "@/lib/forms-db";
 import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
+import { logConversionEvent, type LogStatus } from "@/lib/conversion-log";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   if (!isAuthenticated()) return NextResponse.json({ ok: false }, { status: 401 });
+  const session = getSession();
   const sb = getSupabaseAdmin();
   if (!sb) return NextResponse.json({ ok: false }, { status: 400 });
 
@@ -34,9 +36,12 @@ export async function PATCH(
     patch.qualified = true;
     const { data: row } = await sb
       .from("submissions")
-      .select("form_slug,email,telefone,score,tracking,gads_status")
+      .select("form_slug,email,telefone,score,tracking,gads_status,workspace_id")
       .eq("id", params.id)
       .single();
+
+    // registra a tentativa manual no histórico, com quem disparou
+    let logDetail: Record<string, unknown> = {};
 
     if (row && row.gads_status !== "sent") {
       const gclid = (row.tracking as { gclid?: string } | null)?.gclid;
@@ -48,12 +53,14 @@ export async function PATCH(
         gadsStatus = "skipped";
         patch.gads_status = "skipped";
         patch.gads_error = "lead sem gclid";
+        logDetail = { error: "lead sem gclid" };
       } else if (!isGoogleAdsConfigured() || !hasCfg) {
         gadsStatus = "skipped";
         patch.gads_status = "skipped";
         patch.gads_error = !hasCfg
           ? "formulário sem Customer/Conversion ID"
           : "credenciais do Google Ads ausentes no servidor";
+        logDetail = { error: patch.gads_error };
       } else {
         const r = await uploadQualifiedConversion({
           gclid,
@@ -69,6 +76,28 @@ export async function PATCH(
         patch.gads_status = r.ok ? "sent" : "failed";
         patch.gads_error = r.ok ? null : r.error ?? "erro";
         if (r.ok) patch.gads_sent_at = new Date().toISOString();
+        logDetail = {
+          error: r.ok ? undefined : r.error ?? "erro",
+          gclid: `${gclid.slice(0, 12)}…`,
+          conversion_action_id: form!.pixel!.googleConversionActionId,
+          customer_id: form!.pixel!.googleCustomerId,
+          valor: row.score,
+        };
+      }
+
+      // Só registra quando houve tentativa de verdade. Reordenar o Kanban
+      // sem qualificar, ou requalificar um lead já enviado, não gera linha.
+      if (gadsStatus) {
+        await logConversionEvent({
+          submissionId: params.id,
+          formSlug: row.form_slug,
+          workspaceId: (row as { workspace_id?: string | null }).workspace_id ?? null,
+          destination: "google_ads",
+          trigger: "manual_kanban",
+          status: gadsStatus as LogStatus,
+          actorUserId: session?.userId ?? null,
+          detail: logDetail,
+        });
       }
     } else if (row) {
       gadsStatus = "sent"; // já havia sido enviada antes

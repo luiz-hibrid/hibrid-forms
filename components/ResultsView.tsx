@@ -9,6 +9,7 @@ import { FieldTypeIcon, FIELD_META } from "@/components/FieldTypeIcon";
 import { BrazilGeoMap } from "@/components/BrazilGeoMap";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { OptimizePanel } from "@/components/OptimizePanel";
+import { ConversionTimeline, ConversionLogTable } from "@/components/ConversionLog";
 
 interface Submission {
   id: string;
@@ -145,8 +146,10 @@ export function ResultsView({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<
-    "summary" | "responses" | "map" | "kanban" | "optimize"
+    "summary" | "responses" | "map" | "kanban" | "optimize" | "log"
   >("summary");
+  // status pré-selecionado ao chegar pelo painel de conversões do dashboard
+  const [logStatus, setLogStatus] = useState<string | undefined>(undefined);
 
   const completes = useMemo(
     () => submissions.filter((s) => s.status === "complete"),
@@ -164,6 +167,7 @@ export function ResultsView({
         <SubTab active={tab === "map"} onClick={() => setTab("map")} icon={<IcoPin />}>Mapa</SubTab>
         <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")} icon={<IcoColumns />}>Kanban</SubTab>
         <SubTab active={tab === "optimize"} onClick={() => setTab("optimize")} icon={<IcoSpark />}>Otimizar</SubTab>
+        <SubTab active={tab === "log"} onClick={() => { setLogStatus(undefined); setTab("log"); }} icon={<IcoLog />}>Envios</SubTab>
       </div>
 
       {tab === "summary" && (
@@ -188,6 +192,10 @@ export function ResultsView({
               onSeeAll={() => setTab("responses")}
             />
           }
+          onOpenLog={(status) => {
+            setLogStatus(status);
+            setTab("log");
+          }}
         />
       )}
       {tab === "responses" && (
@@ -197,6 +205,7 @@ export function ResultsView({
       )}
       {tab === "map" && <BrazilGeoMap submissions={completes} />}
       {tab === "optimize" && <OptimizePanel formId={formId} steps={steps} />}
+      {tab === "log" && <ConversionLogTable formId={formId} initialStatus={logStatus} />}
       {tab === "kanban" && (
         <Kanban
           formId={formId}
@@ -714,6 +723,13 @@ function LeadQuickView({
             </div>
           )}
 
+          <div className="mt-4 rounded-xl border border-[var(--border)] p-3">
+            <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
+              Histórico de envios
+            </div>
+            <ConversionTimeline submissionId={submission.id} />
+          </div>
+
           <div className="mt-4 flex items-center justify-between">
             <span className="mono text-[0.62rem] text-[var(--text3)]">
               #{submission.id.slice(0, 12).toUpperCase()} · {fmtDate(submission.created_at)}
@@ -1222,6 +1238,14 @@ function IcoColumns() {
       <rect x="3" y="4" width="5" height="16" rx="1" />
       <rect x="9.5" y="4" width="5" height="16" rx="1" />
       <rect x="16" y="4" width="5" height="16" rx="1" />
+    </svg>
+  );
+}
+function IcoLog() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 8v4l3 2" />
+      <circle cx="12" cy="12" r="9" />
     </svg>
   );
 }

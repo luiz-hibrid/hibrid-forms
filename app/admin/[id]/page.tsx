@@ -6,6 +6,7 @@ import { getFormBySlug } from "@/lib/forms-db";
 import type { FormConfig } from "@/lib/types";
 import { Logo } from "@/components/Logo";
 import { TierBadge } from "@/components/TierBadge";
+import { ConversionTimeline } from "@/components/ConversionLog";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +188,12 @@ export default async function LeadDetail({
             </div>
           </>
         )}
+
+        {/* Histórico de disparos para as integrações */}
+        <h2 className="lbl mt-8 mb-3 block">Histórico de envios</h2>
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+          <ConversionTimeline submissionId={params.id} />
+        </div>
       </div>
     </main>
   );

@@ -126,6 +126,7 @@ export function AnalyticsDashboard({
   avgMs,
   funnel,
   rail,
+  onOpenLog,
 }: {
   submissions: AnalyticsSubmission[];
   views: number;
@@ -133,6 +134,8 @@ export function AnalyticsDashboard({
   avgMs: number | null;
   funnel?: React.ReactNode;
   rail?: React.ReactNode;
+  /** abre o log de envios já filtrado por este status */
+  onOpenLog?: (status?: string) => void;
 }) {
   const [filters, setFilters] = useState<Filters>({});
   const allRows = useMemo(() => buildRows(submissions), [submissions]);
@@ -345,7 +348,7 @@ export function AnalyticsDashboard({
             <TierBars items={tiers} total={rows.length} />
           </Panel>
           <Panel title="Conversões Google Ads">
-            <GadsHealth {...gads} />
+            <GadsHealth {...gads} onOpenLog={onOpenLog} />
           </Panel>
         </div>
 
@@ -786,36 +789,61 @@ function GadsHealth({
   failed,
   skipped,
   pending,
+  onOpenLog,
 }: {
   sent: number;
   failed: number;
   skipped: number;
   pending: number;
+  onOpenLog?: (status?: string) => void;
 }) {
   const cells = [
-    { n: sent, label: "Enviadas", color: "var(--accent)" },
-    { n: failed, label: "Falharam", color: "var(--red)" },
-    { n: skipped, label: "Ignoradas", color: "#d3d7cb" },
-    { n: pending, label: "Pendentes", color: "#8a9a72" },
+    { n: sent, label: "Enviadas", color: "var(--accent)", status: "sent" },
+    { n: failed, label: "Falharam", color: "var(--red)", status: "failed" },
+    { n: skipped, label: "Ignoradas", color: "#d3d7cb", status: "skipped" },
+    { n: pending, label: "Pendentes", color: "#8a9a72", status: undefined },
   ];
   return (
     <div>
       <div className="grid grid-cols-4 gap-2">
-        {cells.map((c) => (
-          <div key={c.label} className="rounded-xl bg-[var(--bg)] p-3 text-center">
-            <div className="text-[1.3rem] font-black leading-none tabular-nums">{c.n}</div>
-            <div className="mono mt-1.5 text-[0.58rem] uppercase tracking-wider text-[var(--text3)]">
-              {c.label}
-            </div>
-            <div className="mt-2 h-1 rounded-full" style={{ background: c.n > 0 ? c.color : "var(--border)" }} />
-          </div>
-        ))}
+        {cells.map((c) => {
+          const clickable = Boolean(onOpenLog && c.status);
+          return (
+            <button
+              key={c.label}
+              type="button"
+              disabled={!clickable}
+              onClick={() => onOpenLog?.(c.status)}
+              title={clickable ? "Ver no histórico de envios" : undefined}
+              className={`rounded-xl bg-[var(--bg)] p-3 text-center transition ${
+                clickable ? "cursor-pointer hover:bg-[#eceee8]" : "cursor-default"
+              }`}
+            >
+              <div className="text-[1.3rem] font-black leading-none tabular-nums">{c.n}</div>
+              <div className="mono mt-1.5 text-[0.58rem] uppercase tracking-wider text-[var(--text3)]">
+                {c.label}
+              </div>
+              <div
+                className="mt-2 h-1 rounded-full"
+                style={{ background: c.n > 0 ? c.color : "var(--border)" }}
+              />
+            </button>
+          );
+        })}
       </div>
       {skipped > 0 && (
         <p className="mt-3 text-[0.72rem] leading-relaxed text-[var(--text3)]">
           Leads ignorados normalmente chegaram sem <span className="mono">gclid</span> — a origem do
           anúncio não foi repassada até o formulário.
         </p>
+      )}
+      {onOpenLog && (
+        <button
+          onClick={() => onOpenLog(undefined)}
+          className="mono mt-3 text-[0.62rem] uppercase tracking-wider text-[var(--text2)] underline-offset-2 hover:text-[var(--text)] hover:underline"
+        >
+          Ver histórico completo de envios →
+        </button>
       )}
     </div>
   );
