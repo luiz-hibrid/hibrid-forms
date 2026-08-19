@@ -82,6 +82,11 @@ export function parseSession(token?: string | null): Session | null {
 
 /** Sessão atual (server components / route handlers). */
 export function getSession(): Session | null {
+  // ⚠️ DEV ONLY: bypass de autenticação em ambiente local.
+  // Nunca vai para produção pois NODE_ENV é "production" no build.
+  if (process.env.NODE_ENV === "development") {
+    return { userId: "dev-user", role: "master", workspaceId: null };
+  }
   return parseSession(cookies().get(SESSION_COOKIE)?.value);
 }
 
