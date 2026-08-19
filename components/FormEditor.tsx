@@ -945,6 +945,7 @@ export function FormEditor({
             setWebhookUrl={setWebhookUrl}
             notifyEmails={notifyEmails}
             setNotifyEmails={setNotifyEmails}
+            onSave={save}
           />
         </div>
       )}
@@ -1867,6 +1868,7 @@ function IntegrateTab({
   setWebhookUrl,
   notifyEmails,
   setNotifyEmails,
+  onSave,
 }: {
   pixel: PixelConfig;
   updatePixel: (p: Partial<PixelConfig>) => void;
@@ -1874,6 +1876,8 @@ function IntegrateTab({
   setWebhookUrl: (v: string) => void;
   notifyEmails: string;
   setNotifyEmails: (v: string) => void;
+  /** Salva o formulário inteiro (mesma ação do botão "Salvar" do topo). */
+  onSave: () => void | Promise<void>;
 }) {
   return (
     <div className="mx-auto max-w-[760px] px-6 py-8">
@@ -1930,7 +1934,12 @@ function IntegrateTab({
         <GoogleAdsTestButton
           customerId={pixel.googleCustomerId}
           conversionActionId={pixel.googleConversionActionId}
+          onSave={onSave}
         />
+        <p className="mono mt-2 text-[0.62rem] text-[var(--text3)]">
+          Validar a conexão com sucesso já salva o Customer ID e o Conversion
+          Action ID acima — não precisa clicar em "Salvar" separadamente.
+        </p>
       </IntegrationCard>
 
       <IntegrationCard
@@ -2027,9 +2036,13 @@ function IntegrateTab({
 function GoogleAdsTestButton({
   customerId,
   conversionActionId,
+  onSave,
 }: {
   customerId?: string;
   conversionActionId?: string;
+  /** Salva o formulário inteiro após uma validação bem-sucedida — testar a
+   * conexão sem persistir os IDs deixava fácil achar que já tinha salvo. */
+  onSave: () => void | Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -2046,13 +2059,12 @@ function GoogleAdsTestButton({
       const a = data.action as
         | { name?: string; id?: string; type?: string; status?: string }
         | undefined;
-      if (data.ok && a) {
-        setResult({
-          ok: true,
-          msg: `Conta e ação válidas — ${a.name ?? a.id} · ${a.type ?? ""} · ${a.status ?? ""}`,
-        });
-      } else if (data.ok) {
-        setResult({ ok: true, msg: "Credenciais válidas." });
+      if (data.ok) {
+        await onSave();
+        const base = a
+          ? `Conta e ação válidas — ${a.name ?? a.id} · ${a.type ?? ""} · ${a.status ?? ""}`
+          : "Credenciais válidas.";
+        setResult({ ok: true, msg: `${base} Formulário salvo.` });
       } else {
         setResult({ ok: false, msg: data.error || "Falha na validação." });
       }
