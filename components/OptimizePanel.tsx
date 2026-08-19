@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Field } from "@/lib/types";
 import type { Insight, InsightSample } from "@/lib/insights";
 
@@ -47,12 +48,18 @@ function fmtDateTime(iso: string): string {
 }
 
 export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[] }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState(true);
   const [canGenerate, setCanGenerate] = useState(false);
   const [insight, setInsight] = useState<SavedInsight | null>(null);
+
+  // ações marcadas para virar o formulário novo (índices na lista já ordenada)
+  const [picked, setPicked] = useState<number[]>([]);
+  const [building, setBuilding] = useState(false);
+  const [buildError, setBuildError] = useState<string | null>(null);
 
   const stepTitle = useCallback(
     (id?: string) => (id ? steps.find((s) => s.id === id)?.title : undefined),
@@ -76,6 +83,18 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
     };
   }, [formId]);
 
+  // ordem estável das ações — é a mesma que o servidor usa para casar os índices
+  const acoes = useMemo(
+    () => (insight?.payload.acoes ?? []).slice().sort((x, y) => x.prioridade - y.prioridade),
+    [insight]
+  );
+
+  // toda análise nova chega com tudo marcado
+  useEffect(() => {
+    setPicked(acoes.map((_, i) => i));
+    setBuildError(null);
+  }, [acoes]);
+
   async function generate() {
     setGenerating(true);
     setError(null);
@@ -88,6 +107,33 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
       setError("Falha de rede ao gerar a análise.");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  function toggle(i: number) {
+    setPicked((p) => (p.includes(i) ? p.filter((v) => v !== i) : [...p, i].sort((a, b) => a - b)));
+  }
+
+  async function buildForm() {
+    if (!insight || !picked.length) return;
+    setBuilding(true);
+    setBuildError(null);
+    try {
+      const res = await fetch(`/api/admin/forms/${formId}/optimize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ insightId: insight.id, actionIndexes: picked }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setBuildError(data.error || "Falha ao criar o formulário.");
+        return;
+      }
+      router.push(`/admin/forms/${data.id}`);
+    } catch {
+      setBuildError("Falha de rede ao criar o formulário.");
+    } finally {
+      setBuilding(false);
     }
   }
 
@@ -213,23 +259,42 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
           )}
 
           {/* ações */}
-          {a.acoes?.length > 0 && (
+          {acoes.length > 0 && (
             <section className="dash-in rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-              <span className="lbl">O que fazer, nesta ordem</span>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="lbl">O que fazer, nesta ordem</span>
+                {canGenerate && (
+                  <span className="text-[0.72rem] text-[var(--text3)]">
+                    Marque o que deve entrar no formulário novo.
+                  </span>
+                )}
+              </div>
               <div className="mt-4 flex flex-col gap-3">
-                {a.acoes
-                  .slice()
-                  .sort((x, y) => x.prioridade - y.prioridade)
-                  .map((ac, i) => (
+                {acoes.map((ac, i) => {
+                  const on = picked.includes(i);
+                  return (
                     <div
                       key={i}
-                      className="rounded-xl bg-[var(--bg)] p-4"
-                      style={i === 0 ? { boxShadow: "inset 3px 0 0 var(--accent)" } : undefined}
+                      className="rounded-xl bg-[var(--bg)] p-4 transition"
+                      style={{
+                        ...(i === 0 ? { boxShadow: "inset 3px 0 0 var(--accent)" } : {}),
+                        ...(canGenerate && !on ? { opacity: 0.45 } : {}),
+                      }}
                     >
                       <div className="flex items-start gap-3">
-                        <span className="mono mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--dark)] text-[0.65rem] font-bold text-white">
-                          {ac.prioridade}
-                        </span>
+                        {canGenerate ? (
+                          <input
+                            type="checkbox"
+                            checked={on}
+                            onChange={() => toggle(i)}
+                            aria-label={`Aplicar: ${ac.titulo}`}
+                            className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-[var(--dark)]"
+                          />
+                        ) : (
+                          <span className="mono mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--dark)] text-[0.65rem] font-bold text-white">
+                            {ac.prioridade}
+                          </span>
+                        )}
                         <div className="min-w-0 flex-1">
                           <h4 className="text-[0.92rem] font-bold text-[var(--text)]">{ac.titulo}</h4>
                           {stepTitle(ac.stepId) && (
@@ -254,8 +319,40 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
               </div>
+
+              {canGenerate && (
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+                  <p className="max-w-[46ch] text-[0.75rem] leading-relaxed text-[var(--text3)]">
+                    Nasce como rascunho e compartilha a base de leads deste formulário — as
+                    respostas das duas versões aparecem na mesma tabela.
+                  </p>
+                  <button
+                    onClick={buildForm}
+                    disabled={building || !picked.length}
+                    className="mono shrink-0 rounded-full bg-[var(--accent)] px-5 py-2.5 text-[0.68rem] font-bold uppercase tracking-wider text-[var(--dark)] transition hover:bg-[var(--acc2)] disabled:opacity-40"
+                  >
+                    {building
+                      ? "Criando formulário…"
+                      : `Gerar formulário com ${picked.length} ${
+                          picked.length === 1 ? "ação" : "ações"
+                        }`}
+                  </button>
+                </div>
+              )}
+
+              {buildError && (
+                <p className="mt-3 rounded-xl bg-[rgba(255,69,69,0.08)] px-4 py-3 text-[0.8rem] text-[var(--red)]">
+                  {buildError}
+                </p>
+              )}
+              {building && (
+                <p className="mt-3 text-[0.78rem] text-[var(--text3)]">
+                  Reescrevendo as perguntas e montando a nova versão. Leva alguns instantes.
+                </p>
+              )}
             </section>
           )}
 

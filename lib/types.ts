@@ -143,4 +143,21 @@ export interface FormConfig {
   logoUrl?: string;
   /** e-mails que recebem aviso de novo lead (separados por vírgula) */
   notifyEmails?: string;
+
+  // ---------------------------------------------------------------
+  // Versões que compartilham a mesma base de leads
+  // ---------------------------------------------------------------
+  /**
+   * Agrupa versões do mesmo formulário. Guarda o **id** do formulário original
+   * (não o slug — o slug pode ser trocado no editor e o vínculo se perderia).
+   */
+  leadGroupId?: string;
+  /** Rótulo curto da versão, exibido nas listas de leads ("v1", "v2"). */
+  variantLabel?: string;
+  /** Formulário que originou esta versão. */
+  derivedFromId?: string;
+  /** Análise (form_insights) que originou esta versão. */
+  derivedFromInsightId?: string;
+  /** Títulos das ações da análise que foram aplicadas ao gerar esta versão. */
+  appliedActions?: string[];
 }

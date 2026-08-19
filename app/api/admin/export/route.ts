@@ -30,7 +30,13 @@ export async function GET(request: Request) {
     .order("created_at", { ascending: false })
     .limit(5000);
   if (tier) query = query.eq("tier", tier);
-  if (form) query = query.eq("form_slug", form);
+  // `form` aceita um slug ou vários separados por vírgula (versões que
+  // compartilham a mesma base de leads saem no mesmo CSV).
+  if (form) {
+    const slugs = form.split(",").map((v) => v.trim()).filter(Boolean);
+    if (slugs.length > 1) query = query.in("form_slug", slugs);
+    else if (slugs.length === 1) query = query.eq("form_slug", slugs[0]);
+  }
 
   const { data, error } = await query;
   if (error) {

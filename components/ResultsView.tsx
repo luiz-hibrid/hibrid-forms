@@ -13,6 +13,8 @@ import { ConversionTimeline, ConversionLogTable } from "@/components/ConversionL
 
 interface Submission {
   id: string;
+  /** de qual versão do formulário este lead veio */
+  form_slug?: string;
   nome: string | null;
   email: string | null;
   telefone: string | null;
@@ -97,6 +99,19 @@ interface Column {
   qualified?: boolean;
 }
 
+/** Uma versão do formulário dentro do grupo que compartilha a base de leads. */
+interface Variant {
+  id: string;
+  slug: string;
+  name: string;
+  label: string;
+  published: boolean;
+  views: number;
+  starts: number;
+  responses: number;
+  qualified: number;
+}
+
 function fmtDate(iso: string): string {
   try {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -130,19 +145,28 @@ export function ResultsView({
   formName,
   formSlug,
   steps,
+  tableSteps,
   kanbanColumns,
   submissions,
   stats,
   reached,
+  variants = [],
+  groupSlugs = [],
 }: {
   formId: string;
   formName: string;
   formSlug: string;
+  /** etapas desta versão — funil, Kanban e a análise */
   steps: Field[];
+  /** união das etapas de todas as versões — colunas da tabela de respostas */
+  tableSteps?: Field[];
   kanbanColumns: Column[];
+  /** leads de todas as versões do grupo */
   submissions: Submission[];
   stats: { views: number; starts: number; avgMs?: number | null };
   reached?: Record<string, number> | null;
+  variants?: Variant[];
+  groupSlugs?: string[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<
@@ -155,8 +179,25 @@ export function ResultsView({
     () => submissions.filter((s) => s.status === "complete"),
     [submissions]
   );
-  const responses = completes.length;
-  const completion = stats.views > 0 ? Math.round((responses / stats.views) * 100) : 0;
+
+  // O Resumo e o funil são desta versão; o resto do painel é do grupo inteiro.
+  const hasGroup = variants.length > 1;
+  const ownCompletes = useMemo(
+    () => (hasGroup ? completes.filter((s) => s.form_slug === formSlug) : completes),
+    [completes, hasGroup, formSlug]
+  );
+  const ownSubmissions = useMemo(
+    () => (hasGroup ? submissions.filter((s) => s.form_slug === formSlug) : submissions),
+    [submissions, hasGroup, formSlug]
+  );
+  const variantLabels = useMemo(() => {
+    const map: Record<string, string> = {};
+    variants.forEach((v) => (map[v.slug] = v.label));
+    return map;
+  }, [variants]);
+
+  const responses = ownCompletes.length;
+  const exportSlugs = groupSlugs.length ? groupSlugs : [formSlug];
 
   return (
     <div className="w-full px-5 py-6 sm:px-8">
@@ -171,36 +212,45 @@ export function ResultsView({
       </div>
 
       {tab === "summary" && (
-        <AnalyticsDashboard
-          submissions={completes}
-          views={stats.views}
-          starts={stats.starts}
-          avgMs={stats.avgMs ?? null}
-          funnel={
-            <Funnel
-              steps={steps}
-              submissions={completes}
-              starts={stats.starts}
-              responses={responses}
-              reached={reached ?? null}
-            />
-          }
-          rail={
-            <LeadsRail
-              submissions={submissions}
-              steps={steps}
-              onSeeAll={() => setTab("responses")}
-            />
-          }
-          onOpenLog={(status) => {
-            setLogStatus(status);
-            setTab("log");
-          }}
-        />
+        <>
+          {hasGroup && <VariantComparison variants={variants} currentSlug={formSlug} />}
+          <AnalyticsDashboard
+            submissions={ownCompletes}
+            views={stats.views}
+            starts={stats.starts}
+            avgMs={stats.avgMs ?? null}
+            funnel={
+              <Funnel
+                steps={steps}
+                submissions={ownCompletes}
+                starts={stats.starts}
+                responses={responses}
+                reached={reached ?? null}
+              />
+            }
+            rail={
+              <LeadsRail
+                submissions={ownSubmissions}
+                steps={steps}
+                onSeeAll={() => setTab("responses")}
+              />
+            }
+            onOpenLog={(status) => {
+              setLogStatus(status);
+              setTab("log");
+            }}
+          />
+        </>
       )}
       {tab === "responses" && (
         <div className="-mx-5 sm:-mx-8">
-          <Responses steps={steps} submissions={submissions} formSlug={formSlug} onChange={() => router.refresh()} />
+          <Responses
+            steps={tableSteps ?? steps}
+            submissions={submissions}
+            exportSlugs={exportSlugs}
+            variantLabels={hasGroup ? variantLabels : null}
+            onChange={() => router.refresh()}
+          />
         </div>
       )}
       {tab === "map" && <BrazilGeoMap submissions={completes} />}
@@ -209,12 +259,116 @@ export function ResultsView({
       {tab === "kanban" && (
         <Kanban
           formId={formId}
-          steps={steps}
+          steps={tableSteps ?? steps}
           initialColumns={kanbanColumns}
           submissions={completes}
           onRefresh={() => router.refresh()}
         />
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- Comparação de versões
+
+/**
+ * Aparece quando o formulário tem versões geradas pela aba Otimizar. Os leads são
+ * compartilhados, mas visualizações e conversão são de cada versão — é o que permite
+ * dizer qual delas converte melhor.
+ */
+function VariantComparison({
+  variants,
+  currentSlug,
+}: {
+  variants: Variant[];
+  currentSlug: string;
+}) {
+  const best = variants.reduce(
+    (acc, v) => {
+      const rate = v.views > 0 ? v.responses / v.views : 0;
+      return rate > acc.rate ? { rate, slug: v.slug } : acc;
+    },
+    { rate: 0, slug: "" }
+  );
+
+  return (
+    <div className="dash-in mb-5 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5">
+        <span className="lbl">Comparação de versões</span>
+        <span className="text-[0.72rem] text-[var(--text3)]">
+          Os leads são compartilhados; visualizações e conversão são de cada versão.
+        </span>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full min-w-[560px] text-left">
+          <thead>
+            <tr className="mono border-b border-[var(--border)] text-[0.58rem] uppercase tracking-wider text-[var(--text3)]">
+              <th className="px-5 py-2 font-normal">Versão</th>
+              <th className="px-3 py-2 text-right font-normal">Visualizações</th>
+              <th className="px-3 py-2 text-right font-normal">Inícios</th>
+              <th className="px-3 py-2 text-right font-normal">Respostas</th>
+              <th className="px-3 py-2 text-right font-normal">Qualificados</th>
+              <th className="px-5 py-2 text-right font-normal">Conversão</th>
+            </tr>
+          </thead>
+          <tbody>
+            {variants.map((v) => {
+              const rate = v.views > 0 ? Math.round((v.responses / v.views) * 100) : null;
+              const isCurrent = v.slug === currentSlug;
+              return (
+                <tr
+                  key={v.slug}
+                  className="border-b border-[var(--border)] text-[0.82rem] last:border-0"
+                  style={isCurrent ? { background: "var(--bg)" } : undefined}
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="mono rounded-full bg-[var(--dark)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-white">
+                        {v.label}
+                      </span>
+                      <span className="truncate font-medium text-[var(--text)]">{v.name}</span>
+                      {!v.published && (
+                        <span className="mono shrink-0 rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.52rem] uppercase tracking-wide text-[var(--text3)]">
+                          Rascunho
+                        </span>
+                      )}
+                      {isCurrent && (
+                        <span className="mono shrink-0 text-[0.52rem] uppercase tracking-wide text-[var(--text3)]">
+                          nesta tela
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums text-[var(--text2)]">{v.views}</td>
+                  <td className="px-3 py-3 text-right tabular-nums text-[var(--text2)]">{v.starts}</td>
+                  <td className="px-3 py-3 text-right tabular-nums font-bold text-[var(--text)]">
+                    {v.responses}
+                  </td>
+                  <td className="px-3 py-3 text-right tabular-nums text-[var(--text2)]">
+                    {v.qualified}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    {rate === null ? (
+                      <span className="text-[var(--text3)]">—</span>
+                    ) : (
+                      <span
+                        className="rounded-full px-2 py-0.5 font-bold tabular-nums"
+                        style={
+                          v.slug === best.slug && best.rate > 0
+                            ? { background: "var(--accent)", color: "var(--dark)" }
+                            : { color: "var(--text2)" }
+                        }
+                      >
+                        {rate}%
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -420,16 +574,21 @@ function LeadsRail({
 function Responses({
   steps,
   submissions,
-  formSlug,
+  exportSlugs,
+  variantLabels,
   onChange,
 }: {
   steps: Field[];
   submissions: Submission[];
-  formSlug: string;
+  /** slugs incluídos na exportação — todas as versões do grupo */
+  exportSlugs: string[];
+  /** slug → rótulo da versão; null quando o formulário não tem versões */
+  variantLabels: Record<string, string> | null;
   onChange: () => void;
 }) {
   const [q, setQ] = useState("");
   const [campaign, setCampaign] = useState("");
+  const [variant, setVariant] = useState("");
   const [statusFilter, setStatusFilter] = useState<"complete" | "partial" | "all">("complete");
   const [viewId, setViewId] = useState<string | null>(null);
   const viewed = submissions.find((s) => s.id === viewId) ?? null;
@@ -454,6 +613,7 @@ function Responses({
       if (statusFilter === "complete" && s.status !== "complete") return false;
       if (statusFilter === "partial" && s.status === "complete") return false;
       if (campaign && s.tracking?.utm_campaign !== campaign) return false;
+      if (variant && s.form_slug !== variant) return false;
       if (!t) return true;
       const blob = [
         s.nome,
@@ -467,7 +627,7 @@ function Responses({
         .toLowerCase();
       return blob.includes(t);
     });
-  }, [q, campaign, statusFilter, submissions]);
+  }, [q, campaign, variant, statusFilter, submissions]);
 
   async function remove(id: string) {
     if (!confirm("Excluir esta resposta?")) return;
@@ -509,11 +669,25 @@ function Responses({
               ))}
             </select>
           )}
+          {variantLabels && (
+            <select
+              value={variant}
+              onChange={(e) => setVariant(e.target.value)}
+              className="rounded-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--text2)]"
+            >
+              <option value="">Todas as versões</option>
+              {Object.entries(variantLabels).map(([slug, label]) => (
+                <option key={slug} value={slug}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="mono text-[0.72rem] text-[var(--text3)]">{rows.length} respostas</span>
           <a
-            href={`/api/admin/export?form=${formSlug}`}
+            href={`/api/admin/export?form=${exportSlugs.join(",")}`}
             className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] hover:border-[#bbb] hover:text-[var(--text)]"
           >
             Baixar CSV
@@ -535,6 +709,11 @@ function Responses({
               <Th>
                 <HdrIcon d="M20 6L9 17l-5-5" /> Status
               </Th>
+              {variantLabels && (
+                <Th>
+                  <HdrIcon d="M6 3v12M6 21a3 3 0 100-6 3 3 0 000 6zM6 6a3 3 0 100-6 3 3 0 000 6zM18 9a3 3 0 100-6 3 3 0 000 6zM18 6v3a6 6 0 01-6 6H6" /> Versão
+                </Th>
+              )}
               <Th>
                 <HdrIcon d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20M12 2c3 3 3 17 0 20M12 2c-3 3-3 17 0 20" /> Origem
               </Th>
@@ -560,7 +739,10 @@ function Responses({
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={steps.length + 10} className="px-4 py-12 text-center text-[var(--text2)]">
+                <td
+                  colSpan={steps.length + 10 + (variantLabels ? 1 : 0)}
+                  className="px-4 py-12 text-center text-[var(--text2)]"
+                >
                   Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
                 </td>
               </tr>
@@ -591,6 +773,16 @@ function Responses({
                     {r.status === "complete" ? "Completa" : "Parcial"}
                   </span>
                 </td>
+                {variantLabels && (
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <span
+                      className="mono rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-[var(--text2)]"
+                      title={r.form_slug || ""}
+                    >
+                      {(r.form_slug && variantLabels[r.form_slug]) || "—"}
+                    </span>
+                  </td>
+                )}
                 <td className="whitespace-nowrap px-4 py-3 text-[var(--text2)]">
                   {r.tracking?.utm_source || (r.tracking?.gclid ? "google/ads" : "—")}
                 </td>

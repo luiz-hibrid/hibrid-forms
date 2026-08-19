@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
-import { getFormRow } from "@/lib/forms-db";
+import { getFormRow, getLeadGroup, mergeGroupSteps } from "@/lib/forms-db";
 import type { Field } from "@/lib/types";
 import { FormResultsTopBar } from "@/components/FormResultsTopBar";
 import { ResultsView } from "@/components/ResultsView";
@@ -36,22 +36,53 @@ export default async function ResultsPage({
   const trackDropoff = !!(form.config as any)?.trackDropoff;
 
   const sb = getSupabaseAdmin()!;
+
+  // Versões que dividem a base de leads (só o próprio, quando não há grupo).
+  const group = await getLeadGroup(form);
+  const groupSlugs = group.map((g) => g.slug);
+
   const { data: subs } = await sb
     .from("submissions")
     .select(
-      "id,nome,email,telefone,answers,score,tier,qualified,status,stage,labels,tracking,geo_uf,geo_city,geo_country,gads_status,gads_error,gads_sent_at,duration_ms,device,created_at,updated_at"
+      "id,form_slug,nome,email,telefone,answers,score,tier,qualified,status,stage,labels,tracking,geo_uf,geo_city,geo_country,gads_status,gads_error,gads_sent_at,duration_ms,device,created_at,updated_at"
     )
-    .eq("form_slug", form.slug)
+    .in("form_slug", groupSlugs)
     .order("created_at", { ascending: false })
     .limit(1000);
 
-  const [{ count: views }, { count: starts }] = await Promise.all([
-    sb.from("form_events").select("id", { count: "exact", head: true }).eq("form_slug", form.slug).eq("type", "view"),
-    sb.from("form_events").select("id", { count: "exact", head: true }).eq("form_slug", form.slug).eq("type", "start"),
-  ]);
+  // Visualizações e inícios são por versão — o Resumo compara, não soma.
+  const eventCounts = await Promise.all(
+    groupSlugs.map(async (slug) => {
+      const [{ count: v }, { count: st }] = await Promise.all([
+        sb.from("form_events").select("id", { count: "exact", head: true }).eq("form_slug", slug).eq("type", "view"),
+        sb.from("form_events").select("id", { count: "exact", head: true }).eq("form_slug", slug).eq("type", "start"),
+      ]);
+      return { slug, views: v ?? 0, starts: st ?? 0 };
+    })
+  );
+  const own = eventCounts.find((e) => e.slug === form.slug);
+  const views = own?.views ?? 0;
+  const starts = own?.starts ?? 0;
 
-  // Tempo médio de preenchimento (só dos concluídos que têm duração)
+  const variantStats = group.map((m) => {
+    const ev = eventCounts.find((e) => e.slug === m.slug);
+    const mine = (subs ?? []).filter((r: any) => r.form_slug === m.slug && r.status === "complete");
+    return {
+      slug: m.slug,
+      id: m.id,
+      name: m.name,
+      label: m.variantLabel,
+      published: m.published,
+      views: ev?.views ?? 0,
+      starts: ev?.starts ?? 0,
+      responses: mine.length,
+      qualified: mine.filter((r: any) => r.qualified).length,
+    };
+  });
+
+  // Tempo médio de preenchimento desta versão (só dos concluídos que têm duração)
   const durations = (subs ?? [])
+    .filter((s: any) => s.form_slug === form.slug)
     .map((s: any) => s.duration_ms)
     .filter((d: any) => typeof d === "number" && d > 0);
   const avgMs = durations.length
@@ -83,10 +114,13 @@ export default async function ResultsPage({
         formName={form.name}
         formSlug={form.slug}
         steps={steps.filter((s) => s.type !== "welcome")}
+        tableSteps={mergeGroupSteps(group, form.slug)}
         kanbanColumns={kanban}
         submissions={(subs ?? []) as any[]}
-        stats={{ views: views ?? 0, starts: starts ?? 0, avgMs }}
+        stats={{ views, starts, avgMs }}
         reached={trackDropoff ? reached : null}
+        variants={variantStats}
+        groupSlugs={groupSlugs}
       />
     </main>
   );

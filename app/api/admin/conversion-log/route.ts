@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getFormRow } from "@/lib/forms-db";
+import { getFormRow, getLeadGroup } from "@/lib/forms-db";
 
 export const runtime = "nodejs";
 
@@ -42,7 +42,9 @@ export async function GET(request: Request) {
     const scope = s.role === "client" ? s.workspaceId : null;
     const form = await getFormRow(formId, scope);
     if (!form) return NextResponse.json({ ok: false }, { status: 404 });
-    query = query.eq("form_slug", form.slug);
+    // inclui as demais versões que compartilham a base de leads deste formulário
+    const group = await getLeadGroup(form);
+    query = query.in("form_slug", group.map((g) => g.slug));
   } else {
     return NextResponse.json({ ok: false, error: "informe submission ou form" }, { status: 400 });
   }

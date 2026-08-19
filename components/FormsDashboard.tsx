@@ -192,7 +192,10 @@ export function FormsDashboard({
                     >
                       {f.name}
                     </Link>
-                    <StatusDot published={f.published} />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <VariantTag label={f.variantLabel} />
+                      <StatusDot published={f.published} />
+                    </div>
                   </div>
                   <div className="mono mt-1 text-[11px] text-[var(--text3)]">
                     {f.responses} respostas · {f.steps} etapas
@@ -239,6 +242,7 @@ export function FormsDashboard({
                       <Link href={`/admin/forms/${f.id}`} className="truncate font-bold text-[var(--text)] hover:underline">
                         {f.name}
                       </Link>
+                      <VariantTag label={f.variantLabel} />
                       <StatusDot published={f.published} />
                     </div>
                     <div className="mono mt-0.5 text-[11px] text-[var(--text3)]">
@@ -655,6 +659,19 @@ function ViewBtn({
     >
       {children}
     </button>
+  );
+}
+
+/** Selo das versões geradas pela aba Otimizar — dividem a base de leads do original. */
+function VariantTag({ label }: { label?: string }) {
+  if (!label) return null;
+  return (
+    <span
+      title="Versão gerada a partir da análise — compartilha a base de leads do formulário original"
+      className="mono shrink-0 rounded-full bg-[var(--dark)] px-2 py-0.5 text-[0.55rem] font-bold uppercase tracking-wide text-white"
+    >
+      {label}
+    </span>
   );
 }
 
