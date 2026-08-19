@@ -28,7 +28,9 @@ npm install --silent && npx next build
 
 `/tmp` can be wiped between sessions — recreate it when missing. Do the real edits in the repo (so they persist for the user), then copy changed files into `/tmp/hb` to build-check.
 
-The user deploys by committing/pushing via **GitHub Desktop**; Vercel auto-deploys. The user works only in the web UI / GitHub Desktop — never assume they run terminal commands. After changes, tell them to Commit + Push.
+**Deploy:** push to `main` triggers a Vercel production build. The user has authorized Claude to commit **and push** automatically once the build check passes — don't stop to ask, and don't tell them to Commit + Push in GitHub Desktop (that was the old flow). Just report what was pushed.
+
+The user still works only in the web UI / GitHub Desktop — never assume they run terminal commands themselves, and never hand them a command to run as a required step.
 
 ## Architecture
 
