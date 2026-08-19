@@ -38,12 +38,36 @@ export async function PUT(
   const config = body.config ?? {};
   const published = !!body.published;
 
+  // Estado anterior: os leads e eventos são amarrados por slug e carregam o
+  // nome do formulário como texto, então precisam acompanhar as duas trocas.
+  const { data: before } = await sb
+    .from("forms")
+    .select("slug,name")
+    .eq("id", params.id)
+    .maybeSingle();
+
   const { error } = await sb
     .from("forms")
     .update({ name, slug, config, published, updated_at: new Date().toISOString() })
     .eq("id", params.id);
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+
+  // Slug novo: sem isso os leads antigos ficariam órfãos do slug velho e o
+  // painel do formulário apareceria vazio.
+  if (before?.slug && before.slug !== slug) {
+    await Promise.all([
+      sb.from("submissions").update({ form_slug: slug }).eq("form_slug", before.slug),
+      sb.from("form_events").update({ form_slug: slug }).eq("form_slug", before.slug),
+      sb.from("conversion_events").update({ form_slug: slug }).eq("form_slug", before.slug),
+    ]);
+  }
+
+  // Nome novo: submissions guarda uma cópia do nome para as listagens de leads.
+  if (before && before.name !== name) {
+    await sb.from("submissions").update({ form_name: name }).eq("form_slug", slug);
+  }
+
   return NextResponse.json({ ok: true, slug });
 }
 
