@@ -230,10 +230,24 @@ export function FormRunner({ form }: { form: FormConfig }) {
   function validate(field: Field): string | null {
     const val = answers[field.id];
     if (field.type === "welcome") return null;
-    if (field.required && (!val || (Array.isArray(val) && val.length === 0))) {
+
+    // Só espaços conta como vazio — senão um campo obrigatório passa com " ".
+    const empty =
+      val === undefined ||
+      val === null ||
+      (typeof val === "string" && val.trim() === "") ||
+      (Array.isArray(val) && val.length === 0);
+
+    if (field.required && empty) {
       return "Esse campo é obrigatório.";
     }
-    if (field.type === "email" && typeof val === "string" && !isValidEmail(val)) {
+
+    // Formato só é cobrado quando há conteúdo. Sem isso, um campo opcional que
+    // a pessoa digitou e apagou trava o avanço com erro de formato — e se ele
+    // for a última etapa, o lead é perdido antes de disparar a conversão.
+    if (empty) return null;
+
+    if (field.type === "email" && typeof val === "string" && !isValidEmail(val.trim())) {
       return "Digite um e-mail válido.";
     }
     if (field.type === "tel" && typeof val === "string") {
@@ -258,8 +272,19 @@ export function FormRunner({ form }: { form: FormConfig }) {
     if (history.length > 1) setHistory((prev) => prev.slice(0, -1));
   }
 
-  async function finish(finalAnswers: Answers = answers, forcedEndId?: string) {
+  async function finish(raw: Answers = answers, forcedEndId?: string) {
     setSubmitting(true);
+
+    // Apara espaços de e-mail e link antes de qualquer coisa: esse valor vai
+    // para o banco, o CRM e o hash das conversões, onde " a@b.c " e "a@b.c"
+    // são dois leads diferentes.
+    const finalAnswers: Answers = { ...raw };
+    form.steps.forEach((s) => {
+      if (s.type !== "email" && s.type !== "link") return;
+      const v = finalAnswers[s.id];
+      if (typeof v === "string") finalAnswers[s.id] = v.trim();
+    });
+
     const score = computeScore(form, finalAnswers);
     const pct = scorePct(form, score);
     const sortedTiers = [...ends.tiers].sort((a, b) => b.minPct - a.minPct);
