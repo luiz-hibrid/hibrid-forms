@@ -219,3 +219,144 @@ body {
   }
   .dash-line { stroke-dashoffset: 0; }
 }
+
+/* ============================================================
+   Login (/admin/login) — padrão visual compartilhado dos
+   sistemas internos da Hibrid. A única coisa que muda entre
+   projetos é a logo; estrutura e comportamento são fixos.
+   ============================================================ */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  /* degradê neutro: nunca o verde da marca (accent é sólido, nunca gradiente) */
+  background: radial-gradient(
+    ellipse 900px 500px at 50% -10%,
+    var(--card),
+    var(--bg) 70%
+  );
+}
+
+/* logo colada em cima do card, não solta no topo da página */
+.login-logo {
+  margin-bottom: 22px;
+  animation: fu 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  /* sombra sutil: dá a sensação de caixa flutuando sobre o degradê
+     sem virar sombra pesada, que a marca não usa */
+  box-shadow: 0 4px 16px rgba(17, 24, 39, 0.08);
+  padding: 28px;
+  animation: fu 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+.login-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin: 0;
+}
+
+.login-sub {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+
+.login-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 13px 16px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.login-input::placeholder {
+  color: var(--text3);
+}
+.login-input:focus {
+  border-color: var(--acc2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 38%, transparent);
+}
+
+/* senha: input + botão de olho DENTRO do campo */
+.login-pass {
+  position: relative;
+}
+.login-pass .login-input {
+  padding-right: 46px; /* abre espaço pro ícone não cobrir o texto */
+}
+.login-eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.login-eye:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+.login-eye:focus-visible {
+  outline: 2px solid var(--acc2);
+  outline-offset: 1px;
+}
+
+.login-error {
+  margin: 12px 0 0;
+  font-size: 0.85rem;
+  color: var(--red);
+}
+
+.login-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--accent);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 13px 24px;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.login-btn:hover:not(:disabled) {
+  background: var(--acc2);
+}
+.login-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-logo,
+  .login-card {
+    animation: none;
+  }
+}
