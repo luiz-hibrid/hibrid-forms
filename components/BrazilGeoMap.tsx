@@ -54,7 +54,9 @@ export function BrazilGeoMap({ submissions }: { submissions: GeoSub[] }) {
   function tileColor(count: number): string {
     if (!count) return "var(--bg)";
     const a = 0.2 + 0.8 * (count / max);
-    return `rgba(61,122,0,${a})`;
+    // rgb literal de --accent-text (#5C8A0F) — alpha dinâmico não dá pra
+    // expressar direto num var() aqui, então uso o rgb equivalente.
+    return `rgba(92,138,15,${a})`;
   }
 
   const topStates = Object.entries(byUf).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -88,7 +90,7 @@ export function BrazilGeoMap({ submissions }: { submissions: GeoSub[] }) {
                     gridColumnStart: x + 1,
                     gridRowStart: y + 1,
                     background: tileColor(count),
-                    color: dark ? "#fff" : count ? "#2f4d00" : "var(--text3)",
+                    color: dark ? "#fff" : count ? "var(--accent-ink)" : "var(--text3)",
                   }}
                   className="flex flex-col items-center justify-center rounded-md text-[0.55rem] font-bold leading-none"
                 >

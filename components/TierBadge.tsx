@@ -1,7 +1,7 @@
 const MAP: Record<string, { label: string; bg: string; color: string }> = {
-  quente: { label: "Quente", bg: "rgba(194,251,141,0.22)", color: "#3d7a00" },
-  morno: { label: "Morno", bg: "rgba(240,184,34,0.16)", color: "#8a6200" },
-  frio: { label: "Frio", bg: "rgba(0,0,0,0.06)", color: "#666" },
+  quente: { label: "Quente", bg: "var(--success-dim)", color: "var(--success)" },
+  morno: { label: "Morno", bg: "var(--warning-dim)", color: "var(--warning-ink)" },
+  frio: { label: "Frio", bg: "var(--border)", color: "var(--text2)" },
 };
 
 export function TierBadge({ tier }: { tier?: string | null }) {

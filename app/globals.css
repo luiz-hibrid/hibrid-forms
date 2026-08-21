@@ -1,28 +1,60 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fragment+Mono&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ============================================================
-   HIBRID — Design tokens
+   NOESIS — Design tokens do painel admin (modo claro).
+   Valores copiados do CSS de produção do Noesis (outro produto da
+   Hibrid). O formulário público (/f/[slug]) não usa estes tokens —
+   tema próprio em lib/theme.ts (--form-*).
    ============================================================ */
 :root {
-  --bg: #f4f4f4;
+  --bg: #ECEEF0;
   --card: #ffffff;
-  --text: #111111;
-  --text2: #555555;
-  --text3: #999999;
-  --accent: #c2fb8d;
-  --acc2: #a8e86e;
-  --border: #e4e4e4;
+  --text: #111827;
+  --text2: #6B7280;
+  /* Noesis não tem 3º nível de texto; uso o --text-2 do dark mode dele
+     como terciário — mais claro que --text2, mais escuro que --border. */
+  --text3: #9CA3AF;
+  --accent: #B8F531;
+  --acc2: #C9FF47;
+  --border: #E1E4E8;
   --dark: #0a0a0a;
   --dark2: #111111;
-  --red: #ff4545;
+  --red: #EF4444;
 
-  --font-sans: var(--font-brand), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* Fragment Mono é a fonte de labels do design system; usamos um stack
-     monospace do sistema como fallback confiável (sem dependência externa). */
-  --font-mono: ui-monospace, "SFMono-Regular", "Roboto Mono", Menlo, Consolas,
+  /* semânticas que a Hibrid Forms não tinha nomeado antes (badges de
+     tier/status usavam hex cru em vez de token) */
+  --success: #4ADE80;
+  --success-dim: rgba(74, 222, 128, 0.12);
+  --warning: #FACC15;
+  --warning-dim: rgba(250, 204, 21, 0.12);
+  /* texto sobre --warning-dim: --warning bruto é claro demais para
+     legibilidade — mesmo ajuste de contraste que o Noesis faz com
+     --accent-text em modo claro */
+  --warning-ink: #946f00;
+  --danger-dim: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.4);
+  --warning-border: rgba(250, 204, 21, 0.4);
+  /* tint do accent em fundo claro — verde escuro, não o lima puro,
+     porque o lima falha contraste como fill grande/texto em claro */
+  --accent-dim: rgba(120, 170, 20, 0.14);
+  --accent-ink: #1A2A00;
+  --ring-accent: rgba(184, 245, 49, 0.35);
+
+  /* escada de profundidade pra gráficos (funil, pizza) — chart-1 é o
+     --accent; os demais escurecem/apagam em vez de mudar de matiz */
+  --chart-2: #6B8F2A;
+  --chart-3: #9CA3AF;
+  --chart-4: #D1D5DB;
+  --chart-grid: rgba(17, 24, 39, 0.06);
+
+  --font-sans: "Satoshi", var(--font-brand), "Inter", ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
     monospace;
 }
 
@@ -208,13 +240,26 @@ body {
 /* sem stroke-dasharray aqui: CSS venceria o atributo que define cada fatia */
 .dash-ring { animation: dashFadeIn 0.5s ease-out both; }
 
+/* Ponto de linha de tendência: pousa depois que a linha termina de desenhar
+   (delay via inline style, um a um) — nunca todos juntos, nunca com bounce. */
+@keyframes dashPointIn {
+  from { opacity: 0; transform: scale(0.3); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.dash-point {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: dashPointIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dash-in,
   .dash-bar,
   .dash-col,
   .dash-fade,
   .dash-line,
-  .dash-ring {
+  .dash-ring,
+  .dash-point {
     animation: none;
   }
   .dash-line { stroke-dashoffset: 0; }

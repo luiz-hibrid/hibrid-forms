@@ -123,7 +123,7 @@ export function UsersManager({
               <div className="truncate text-sm font-medium text-[var(--text)]">{u.email}</div>
               <span
                 className={`mono text-[0.6rem] uppercase ${
-                  u.active ? "text-[#3d7a00]" : "text-[var(--text3)]"
+                  u.active ? "text-[var(--success)]" : "text-[var(--text3)]"
                 }`}
               >
                 {u.active ? "ativo" : "desativado"}

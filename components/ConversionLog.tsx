@@ -15,9 +15,9 @@ import {
 // ============================================================
 
 const STATUS_STYLE: Record<string, { dot: string; chip: string }> = {
-  sent: { dot: "var(--accent)", chip: "bg-[rgba(194,251,141,0.25)] text-[#3d7a00]" },
-  failed: { dot: "var(--red)", chip: "bg-[rgba(255,69,69,0.1)] text-[var(--red)]" },
-  skipped: { dot: "#d3d7cb", chip: "bg-[var(--bg)] text-[var(--text3)]" },
+  sent: { dot: "var(--success)", chip: "bg-[var(--success-dim)] text-[var(--success)]" },
+  failed: { dot: "var(--red)", chip: "bg-[var(--danger-dim)] text-[var(--red)]" },
+  skipped: { dot: "var(--chart-3)", chip: "bg-[var(--bg)] text-[var(--text3)]" },
 };
 
 interface LogData {

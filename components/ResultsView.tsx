@@ -48,8 +48,8 @@ function GadsBadge({
   qualified?: boolean;
 }) {
   const map: Record<string, { label: string; icon: string; cls: string }> = {
-    sent: { label: "Enviado", icon: "✓", cls: "bg-[rgba(194,251,141,0.25)] text-[#3d7a00]" },
-    failed: { label: "Falhou", icon: "✗", cls: "bg-[rgba(220,38,38,0.12)] text-[var(--red)]" },
+    sent: { label: "Enviado", icon: "✓", cls: "bg-[var(--success-dim)] text-[var(--success)]" },
+    failed: { label: "Falhou", icon: "✗", cls: "bg-[var(--danger-dim)] text-[var(--red)]" },
     skipped: { label: "Não enviado", icon: "•", cls: "bg-[var(--bg)] text-[var(--text3)]" },
   };
   const m = status ? map[status] : null;
@@ -202,7 +202,7 @@ export function ResultsView({
   return (
     <div className="w-full px-5 py-6 sm:px-8">
       {/* Sub-nav */}
-      <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(17,24,39,0.06)]">
         <SubTab active={tab === "summary"} onClick={() => setTab("summary")} icon={<IcoSummary />}>Resumo</SubTab>
         <SubTab active={tab === "responses"} onClick={() => setTab("responses")} icon={<IcoTable />}>Respostas</SubTab>
         <SubTab active={tab === "map"} onClick={() => setTab("map")} icon={<IcoPin />}>Mapa</SubTab>
@@ -521,35 +521,36 @@ function LeadsRail({
           <button
             key={r.id}
             onClick={() => setViewId(r.id)}
-            className="block w-full border-b border-[var(--border)] px-4 py-3 text-left transition last:border-0 hover:bg-[var(--bg)]"
+            className="flex w-full items-center gap-2 overflow-hidden border-b border-[var(--border)] px-4 py-2.5 text-left transition last:border-0 hover:bg-[var(--bg)]"
           >
-            <div className="flex items-start justify-between gap-2">
-              <span className="truncate text-[0.85rem] font-bold text-[var(--text)]">
-                {r.nome || "Sem nome"}
-              </span>
-              <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
-                {relativeTime(r.created_at)}
-              </span>
-            </div>
+            <span className="shrink-0 max-w-[38%] truncate text-[0.85rem] font-bold text-[var(--text)]">
+              {r.nome || "Sem nome"}
+            </span>
             {r.email && (
-              <div className="mt-0.5 truncate text-[0.72rem] text-[var(--text2)]">{r.email}</div>
+              <span className="min-w-0 flex-1 truncate text-[0.72rem] text-[var(--text2)]">
+                {r.email}
+              </span>
             )}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {r.status !== "complete" && (
-                <span className="mono rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
-                  Parcial
-                </span>
-              )}
+            {r.status !== "complete" && (
+              <span className="mono shrink-0 rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
+                Parcial
+              </span>
+            )}
+            <span className="shrink-0">
               <TierBadge tier={r.tier} />
-              {r.tracking?.utm_campaign && (
-                <span
-                  className="mono max-w-[130px] truncate rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]"
-                  title={r.tracking.utm_campaign}
-                >
-                  {r.tracking.utm_campaign}
-                </span>
-              )}
-            </div>
+            </span>
+            {r.tracking?.utm_campaign && (
+              <span
+                className="mono max-w-[90px] shrink-0 truncate rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.55rem] uppercase tracking-wide text-[var(--text3)]"
+                title={r.tracking.utm_campaign}
+              >
+                {r.tracking.utm_campaign}
+              </span>
+            )}
+            <span className="mono ml-auto inline-flex shrink-0 items-center gap-1 text-[0.6rem] text-[var(--text3)]">
+              <HdrIcon d="M12 8v4l3 2" circle />
+              {relativeTime(r.created_at)}
+            </span>
           </button>
         ))}
       </div>
@@ -769,7 +770,7 @@ function Responses({
                   {r.id.slice(0, 8)}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+                  <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
                     {r.status === "complete" ? "Completa" : "Parcial"}
                   </span>
                 </td>
@@ -868,7 +869,7 @@ function LeadQuickView({
 
         <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-2.5">
           <TierBadge tier={submission.tier} />
-          <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+          <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
             {submission.status === "complete" ? "Completa" : "Parcial"}
           </span>
           <GadsBadge status={submission.gads_status} error={submission.gads_error} qualified={submission.qualified} />
@@ -1081,7 +1082,7 @@ function Kanban({
                   onClick={() => toggleQualified(col.id)}
                   className={`shrink-0 transition ${
                     col.qualified
-                      ? "text-[#3d7a00]"
+                      ? "text-[var(--success)]"
                       : "text-[var(--text3)] hover:text-[var(--text2)]"
                   }`}
                   aria-label="Marcar coluna como qualificada"
@@ -1112,7 +1113,7 @@ function Kanban({
                 )}
               </div>
               {col.qualified && (
-                <div className="mb-2 flex items-center gap-1 rounded-md bg-[rgba(194,251,141,0.2)] px-2 py-1 text-[0.6rem] font-medium text-[#3d7a00]">
+                <div className="mb-2 flex items-center gap-1 rounded-md bg-[var(--success-dim)] px-2 py-1 text-[0.6rem] font-medium text-[var(--success)]">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" /></svg>
                   Dispara conversão de qualificado
                 </div>
@@ -1156,7 +1157,7 @@ function Kanban({
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {c.status === "complete" && (
-                        <span className="mono rounded-full bg-[rgba(194,251,141,0.25)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+                        <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
                           🎉 Completa
                         </span>
                       )}
@@ -1257,7 +1258,7 @@ function LeadModal({
                 </div>
               ))}
               <div className="flex items-center gap-2 py-3">
-                <span className="mono rounded bg-[rgba(194,251,141,0.25)] px-2 py-1 text-[0.62rem] font-bold text-[#3d7a00]">
+                <span className="mono rounded bg-[var(--accent-dim)] px-2 py-1 text-[0.62rem] font-bold text-[var(--accent-ink)]">
                   # score
                 </span>
                 <span className="text-[var(--text2)]">{submission.score}</span>
@@ -1273,7 +1274,7 @@ function LeadModal({
                 Propriedades
               </div>
               <Row label="Status">
-                <span className="mono rounded-full bg-[rgba(194,251,141,0.2)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+                <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
                   {submission.status === "complete" ? "Completa" : "Parcial"}
                 </span>
               </Row>
@@ -1302,7 +1303,7 @@ function LeadModal({
                 />
               </Row>
               {submission.gads_status === "failed" && submission.gads_error && (
-                <div className="mt-1 rounded-md bg-[rgba(220,38,38,0.08)] px-2 py-1.5 text-[0.7rem] text-[var(--red)]">
+                <div className="mt-1 rounded-md bg-[var(--danger-dim)] px-2 py-1.5 text-[0.7rem] text-[var(--red)]">
                   {submission.gads_error}
                 </div>
               )}

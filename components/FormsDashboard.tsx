@@ -85,7 +85,7 @@ export function FormsDashboard({
       <aside className="hidden w-[190px] shrink-0 md:block">
         <div className="lbl mb-3">Pastas</div>
         <div className="grid gap-1">
-          <div className="rounded-lg bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="rounded-lg bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] shadow-[0_1px_2px_rgba(17,24,39,0.06)]">
             Todos os formulários
           </div>
           <button
@@ -113,7 +113,7 @@ export function FormsDashboard({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Pesquisar formulário…"
-              className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] py-2.5 pl-9 pr-4 text-sm text-[var(--text)] outline-none focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.3)]"
+              className="w-full rounded-full border border-[var(--border)] bg-[var(--card)] py-2.5 pl-9 pr-4 text-sm text-[var(--text)] outline-none focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_var(--ring-accent)]"
             />
           </div>
 
@@ -296,7 +296,7 @@ function RecentLeads({ leads }: { leads: RecentLead[] }) {
           >
             <span
               className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-bold text-white ${
-                l.qualified ? "bg-[#3d7a00]" : "bg-[#8a94a6]"
+                l.qualified ? "bg-[var(--success)]" : "bg-[var(--text2)]"
               }`}
             >
               {initial(l)}
@@ -315,12 +315,12 @@ function RecentLeads({ leads }: { leads: RecentLead[] }) {
               </div>
               <div className="mt-1.5 flex items-center gap-1.5">
                 {l.status !== "complete" && (
-                  <span className="mono rounded-full bg-[rgba(0,0,0,0.06)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--text3)]">
+                  <span className="mono rounded-full bg-[var(--border)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--text3)]">
                     Parcial
                   </span>
                 )}
                 {l.qualified && (
-                  <span className="mono rounded-full bg-[rgba(194,251,141,0.25)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[#3d7a00]">
+                  <span className="mono rounded-full bg-[var(--success-dim)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--success)]">
                     Qualificado
                   </span>
                 )}
@@ -512,7 +512,7 @@ function MenuItem({
         disabled
           ? "cursor-not-allowed text-[var(--text3)] opacity-60"
           : danger
-          ? "text-[var(--red)] hover:bg-[rgba(255,69,69,0.08)]"
+          ? "text-[var(--red)] hover:bg-[var(--danger-dim)]"
           : "text-[var(--text)] hover:bg-[var(--bg)]"
       }`}
     >
@@ -677,11 +677,11 @@ function VariantTag({ label }: { label?: string }) {
 
 function StatusDot({ published }: { published: boolean }) {
   return published ? (
-    <span className="mono shrink-0 rounded-full bg-[rgba(194,251,141,0.22)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[#3d7a00]">
+    <span className="mono shrink-0 rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
       Publicado
     </span>
   ) : (
-    <span className="mono shrink-0 rounded-full bg-[rgba(0,0,0,0.06)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
+    <span className="mono shrink-0 rounded-full bg-[var(--border)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
       Rascunho
     </span>
   );

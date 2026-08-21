@@ -133,7 +133,7 @@ export default async function LeadDetail({
           <div className="mt-4 flex items-center gap-2 text-sm">
             <span className="lbl">CRM</span>
             {data.crm_status === "delivered" ? (
-              <span className="mono text-[0.72rem] text-[#3d7a00]">
+              <span className="mono text-[0.72rem] text-[var(--success)]">
                 ✓ entregue{data.crm_attempts ? ` (${data.crm_attempts}ª tentativa)` : ""}
               </span>
             ) : (
@@ -163,7 +163,7 @@ export default async function LeadDetail({
                   <div className="mt-0.5 font-medium text-[var(--text)]">{answer}</div>
                 </div>
                 {typeof weight === "number" && (
-                  <span className="mono shrink-0 rounded bg-[rgba(194,251,141,0.18)] px-2 py-1 text-[0.65rem] font-bold text-[#3d7a00]">
+                  <span className="mono shrink-0 rounded bg-[var(--accent-dim)] px-2 py-1 text-[0.65rem] font-bold text-[var(--accent-ink)]">
                     +{weight}
                   </span>
                 )}

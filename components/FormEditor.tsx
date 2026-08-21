@@ -128,7 +128,7 @@ function TypeSelect({
                   setOpen(false);
                 }}
                 className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--text)] transition hover:bg-[var(--bg)] ${
-                  t === value ? "bg-[rgba(194,251,141,0.14)]" : ""
+                  t === value ? "bg-[var(--accent-dim)]" : ""
                 }`}
               >
                 <ColorIcon type={t} size={22} />
@@ -584,7 +584,7 @@ export function FormEditor({
                       onClick={() => setSelected(`step:${s._key}`)}
                       className={`group flex w-full min-w-0 cursor-pointer items-center gap-2 overflow-hidden rounded-lg border px-2 py-1.5 text-left text-sm transition ${
                         selected === `step:${s._key}`
-                          ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
+                          ? "border-[var(--accent)] bg-[var(--accent-dim)]"
                           : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
                       } ${dragKey === s._key ? "opacity-40" : ""}`}
                     >
@@ -659,13 +659,13 @@ export function FormEditor({
                         onClick={() => setSelected(`end:${e.id}`)}
                         className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
                           selected === `end:${e.id}`
-                            ? "border-[var(--accent)] bg-[rgba(194,251,141,0.12)]"
+                            ? "border-[var(--accent)] bg-[var(--accent-dim)]"
                             : "border-[var(--border)] bg-[var(--card)] hover:border-[#bbb]"
                         }`}
                       >
                         <span
                           className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-white"
-                          style={{ background: e.qualified ? "#3d7a00" : "#9aa0a6", fontSize: 10 }}
+                          style={{ background: e.qualified ? "var(--success)" : "var(--text3)", fontSize: 10 }}
                         >
                           ✓
                         </span>
@@ -802,7 +802,7 @@ export function FormEditor({
                   </p>
                 </div>
 
-                <div className="rounded-lg border p-3" style={{ borderColor: "rgba(255,69,69,0.4)" }}>
+                <div className="rounded-lg border p-3" style={{ borderColor: "var(--danger-border)" }}>
                   <div className="text-sm font-bold text-[var(--red)]">Zona de perigo</div>
                   <button
                     onClick={deleteForm}
@@ -2010,7 +2010,7 @@ function IntegrateTab({
         title="Aviso por e-mail (novo lead)"
         desc="Receba um e-mail a cada lead completo. Envio via Resend."
         icon={
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#111" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--text)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="5" width="18" height="14" rx="2" />
             <path d="M3 7l9 6 9-6" />
           </svg>
@@ -2086,7 +2086,7 @@ function GoogleAdsTestButton({
       {result && (
         <p
           className={`mt-2 text-sm ${
-            result.ok ? "text-[#3d7a00]" : "text-[var(--red)]"
+            result.ok ? "text-[var(--success)]" : "text-[var(--red)]"
           }`}
         >
           {result.ok ? "✓ " : "✕ "}
@@ -2210,7 +2210,7 @@ function IntegrationCard({
   return (
     <div className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.06)]">
           {icon}
         </span>
         <div>
@@ -2235,7 +2235,7 @@ function ShareTab({ slug, published }: { slug: string; published: boolean }) {
   return (
     <div className="mx-auto max-w-[760px] px-6 py-8">
       {!published && (
-        <div className="mb-5 rounded-xl border border-[#f0d98a] bg-[#fdf7e3] px-4 py-3 text-sm text-[#8a6d1a]">
+        <div className="mb-5 rounded-xl border border-[var(--warning-border)] bg-[var(--warning-dim)] px-4 py-3 text-sm text-[var(--warning-ink)]">
           Este formulário ainda não está publicado. Ative “Publicado” em
           Editor → Ajustes para ele ficar visível.
         </div>
@@ -2285,7 +2285,7 @@ function ShareTab({ slug, published }: { slug: string; published: boolean }) {
 // UI helpers
 // =====================================================================
 const inputCls =
-  "w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_rgba(194,251,141,0.35)]";
+  "w-full rounded-md border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm text-[var(--text)] outline-none transition focus:border-[var(--acc2)] focus:shadow-[0_0_0_3px_var(--ring-accent)]";
 
 function NavPill({
   active,

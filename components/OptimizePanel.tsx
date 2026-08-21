@@ -20,15 +20,15 @@ interface SavedInsight {
 }
 
 const SEV = {
-  alta: { label: "Alta", cls: "bg-[rgba(255,69,69,0.1)] text-[var(--red)]" },
-  media: { label: "Média", cls: "bg-[rgba(0,0,0,0.05)] text-[var(--text2)]" },
+  alta: { label: "Alta", cls: "bg-[var(--danger-dim)] text-[var(--red)]" },
+  media: { label: "Média", cls: "bg-[var(--border)] text-[var(--text2)]" },
   baixa: { label: "Baixa", cls: "bg-[var(--bg)] text-[var(--text3)]" },
 };
 
 const CONF = {
-  alta: { label: "Confiança alta", cls: "bg-[rgba(194,251,141,0.3)] text-[#3d7a00]" },
-  media: { label: "Confiança média", cls: "bg-[rgba(0,0,0,0.05)] text-[var(--text2)]" },
-  baixa: { label: "Confiança baixa", cls: "bg-[rgba(255,69,69,0.1)] text-[var(--red)]" },
+  alta: { label: "Confiança alta", cls: "bg-[var(--success-dim)] text-[var(--success)]" },
+  media: { label: "Confiança média", cls: "bg-[var(--border)] text-[var(--text2)]" },
+  baixa: { label: "Confiança baixa", cls: "bg-[var(--danger-dim)] text-[var(--red)]" },
 };
 
 const ESFORCO: Record<string, string> = { baixo: "Esforço baixo", medio: "Esforço médio", alto: "Esforço alto" };
@@ -181,7 +181,7 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
       </div>
 
       {error && (
-        <p className="mt-4 rounded-xl bg-[rgba(255,69,69,0.08)] px-4 py-3 text-[0.8rem] text-[var(--red)]">
+        <p className="mt-4 rounded-xl bg-[var(--danger-dim)] px-4 py-3 text-[0.8rem] text-[var(--red)]">
           {error}
         </p>
       )}
@@ -344,7 +344,7 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
               )}
 
               {buildError && (
-                <p className="mt-3 rounded-xl bg-[rgba(255,69,69,0.08)] px-4 py-3 text-[0.8rem] text-[var(--red)]">
+                <p className="mt-3 rounded-xl bg-[var(--danger-dim)] px-4 py-3 text-[0.8rem] text-[var(--red)]">
                   {buildError}
                 </p>
               )}

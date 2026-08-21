@@ -164,7 +164,7 @@ function Item({
         <span className="block truncate text-[0.7rem] text-[var(--text3)]">{subtitle}</span>
       </span>
       {active && (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3d7a00" strokeWidth="2.5">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5">
           <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}

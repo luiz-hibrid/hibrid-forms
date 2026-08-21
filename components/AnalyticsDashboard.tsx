@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 
 // ============================================================
 // Dashboard analítico de origem dos leads.
@@ -226,7 +226,7 @@ export function AnalyticsDashboard({
         {/* KPI band */}
         <div
           className="grid grid-cols-2 gap-3 rounded-2xl p-4 text-white sm:grid-cols-3 lg:grid-cols-6 sm:gap-4 sm:p-6"
-          style={{ background: "#4b5735" }}
+          style={{ background: "var(--dark)" }}
         >
           <Kpi n={views} label="Visualizações" />
           <Kpi n={starts} label="Iniciaram" />
@@ -434,7 +434,7 @@ function Panel({
             title={`${coverage.n} de ${coverage.total} leads ${coverage.what}`}
             className={`mono rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide ${
               partial
-                ? "bg-[rgba(255,69,69,0.09)] text-[var(--red)]"
+                ? "bg-[var(--danger-dim)] text-[var(--red)]"
                 : "bg-[var(--bg)] text-[var(--text3)]"
             }`}
           >
@@ -502,7 +502,7 @@ function BarList({
                 style={{
                   width: `${pct}%`,
                   animationDelay: `${i * 45}ms`,
-                  background: isActive || lead ? "var(--accent)" : "#d3d7cb",
+                  background: isActive || lead ? "var(--accent)" : "var(--chart-3)",
                 }}
               />
             </div>
@@ -594,7 +594,7 @@ function WeekChart({
               style={{
                 height: `${Math.max((n / max) * 100, n > 0 ? 8 : 3)}%`,
                 animationDelay: `${d * 55}ms`,
-                background: isActive || d === peak ? "var(--accent)" : "#d3d7cb",
+                background: isActive || d === peak ? "var(--accent)" : "var(--chart-3)",
               }}
             />
             <span
@@ -624,7 +624,7 @@ function Donut({
   const total = items.reduce((a, b) => a + b.value, 0) || 1;
   const R = 52;
   const C = 2 * Math.PI * R;
-  const shades = ["var(--accent)", "#8a9a72", "#d3d7cb", "#eceee8"];
+  const shades = ["var(--accent)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
   let offset = 0;
 
   return (
@@ -692,7 +692,29 @@ function Donut({
 }
 
 /** Área + linha da evolução diária. */
+/** Curva suave por Catmull-Rom→bezier — pontos discretos, leitura contínua. */
+function smoothPath(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return "";
+  if (pts.length === 2) {
+    return `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)} L${pts[1].x.toFixed(1)},${pts[1].y.toFixed(1)}`;
+  }
+  let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] ?? p2;
+    const c1x = p1.x + (p2.x - p0.x) / 6;
+    const c1y = p1.y + (p2.y - p0.y) / 6;
+    const c2x = p2.x - (p3.x - p1.x) / 6;
+    const c2y = p2.y - (p3.y - p1.y) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 function TrendChart({ data }: { data: { label: string; n: number; day: string }[] }) {
+  const gradientId = useId();
   if (data.length === 0) {
     return <p className="py-8 text-center text-[0.78rem] text-[var(--text3)]">Sem leads no período.</p>;
   }
@@ -706,15 +728,38 @@ function TrendChart({ data }: { data: { label: string; n: number; day: string }[
     y: H - P - (d.n / max) * (H - P * 2),
     ...d,
   }));
-  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const line = smoothPath(pts);
   const area = `${line} L${pts[pts.length - 1].x.toFixed(1)},${H} L${pts[0].x.toFixed(1)},${H} Z`;
   // pico do período: único ponto que recebe o accent (marca é flat, verde é pontual)
   const peak = pts.reduce((a, b) => (b.n > a.n ? b : a), pts[0]);
+  // entrada em cascata: a linha termina de desenhar por ~0.9s (.dash-line);
+  // os pontos pousam em seguida, um a um, não todos juntos
+  const dotDelayMs = (i: number) => 500 + i * 45;
 
   return (
     <div>
       <svg viewBox={`0 0 ${W} ${H}`} className="h-[150px] w-full" preserveAspectRatio="none">
-        <path d={area} fill="#e9ece3" className="dash-fade" />
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {/* grade de referência — só orientação, some no ruído por trás dos dados */}
+        {[1 / 3, 2 / 3].map((f) => (
+          <line
+            key={f}
+            x1={P}
+            x2={W - P}
+            y1={H - P - f * (H - P * 2)}
+            y2={H - P - f * (H - P * 2)}
+            stroke="var(--chart-grid)"
+            strokeWidth="1"
+            vectorEffect="non-scaling-stroke"
+            className="dash-fade"
+          />
+        ))}
+        <path d={area} fill={`url(#${gradientId})`} className="dash-fade" />
         <path
           d={line}
           fill="none"
@@ -725,7 +770,7 @@ function TrendChart({ data }: { data: { label: string; n: number; day: string }[
           vectorEffect="non-scaling-stroke"
           className="dash-line"
         />
-        {pts.map((p) => (
+        {pts.map((p, i) => (
           <circle
             key={p.day}
             cx={p.x}
@@ -734,7 +779,11 @@ function TrendChart({ data }: { data: { label: string; n: number; day: string }[
             fill={p === peak ? "var(--accent)" : "var(--dark)"}
             stroke={p === peak ? "var(--dark)" : "none"}
             strokeWidth={p === peak ? 1.5 : 0}
-            className="dash-fade"
+            className="dash-point"
+            style={{
+              animationDelay: `${dotDelayMs(i)}ms`,
+              filter: p === peak ? "drop-shadow(0 0 5px var(--accent-glow))" : undefined,
+            }}
           >
             <title>{`${p.label} — ${p.n} lead${p.n === 1 ? "" : "s"}`}</title>
           </circle>
@@ -752,8 +801,8 @@ function TrendChart({ data }: { data: { label: string; n: number; day: string }[
 function TierBars({ items, total }: { items: { label: string; value: number }[]; total: number }) {
   const tone: Record<string, string> = {
     quente: "var(--accent)",
-    morno: "#c8cfbb",
-    frio: "#e4e6e0",
+    morno: "var(--chart-3)",
+    frio: "var(--chart-4)",
   };
   return (
     <div>
@@ -764,7 +813,7 @@ function TierBars({ items, total }: { items: { label: string; value: number }[];
             className="dash-bar h-full"
             style={{
               width: `${(item.value / Math.max(total, 1)) * 100}%`,
-              background: tone[item.label] ?? "#d3d7cb",
+              background: tone[item.label] ?? "var(--chart-4)",
               animationDelay: `${i * 80}ms`,
             }}
           />
@@ -800,8 +849,8 @@ function GadsHealth({
   const cells = [
     { n: sent, label: "Enviadas", color: "var(--accent)", status: "sent" },
     { n: failed, label: "Falharam", color: "var(--red)", status: "failed" },
-    { n: skipped, label: "Não enviadas", color: "#d3d7cb", status: "skipped" },
-    { n: pending, label: "Pendentes", color: "#8a9a72", status: undefined },
+    { n: skipped, label: "Não enviadas", color: "var(--chart-3)", status: "skipped" },
+    { n: pending, label: "Pendentes", color: "var(--chart-2)", status: undefined },
   ];
   return (
     <div>
@@ -816,7 +865,7 @@ function GadsHealth({
               onClick={() => onOpenLog?.(c.status)}
               title={clickable ? "Ver no histórico de envios" : undefined}
               className={`rounded-xl bg-[var(--bg)] p-3 text-center transition ${
-                clickable ? "cursor-pointer hover:bg-[#eceee8]" : "cursor-default"
+                clickable ? "cursor-pointer hover:bg-[var(--bg)]" : "cursor-default"
               }`}
             >
               <div className="text-[1.3rem] font-black leading-none tabular-nums">{c.n}</div>
