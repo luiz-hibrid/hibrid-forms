@@ -5,6 +5,8 @@ import { getFormBySlug, getWorkspaceIdBySlug } from "@/lib/forms-db";
 import { sendMetaCapi, sendGa4 } from "@/lib/pixel-server";
 import { uploadQualifiedConversion, isGoogleAdsConfigured } from "@/lib/google-ads";
 import { sendLeadEmail, isEmailConfigured } from "@/lib/email";
+import { sendLeadWhatsapp, isWhatsappConfigured, parseDestinations } from "@/lib/whatsapp";
+import { getWorkspaceNotifyWhatsapp } from "@/lib/users";
 import { deviceFromUa } from "@/lib/device";
 import { logConversionEvents, type LogStatus } from "@/lib/conversion-log";
 
@@ -91,7 +93,7 @@ export async function POST(request: Request) {
     // Histórico de disparos desta submissão — gravado de uma vez no fim.
     const logEntries: Parameters<typeof logConversionEvents>[0] = [];
     const track = (
-      destination: "google_ads" | "meta_capi" | "ga4" | "crm" | "email",
+      destination: "google_ads" | "meta_capi" | "ga4" | "crm" | "email" | "whatsapp",
       status: LogStatus,
       detail: Record<string, unknown> = {}
     ) =>
@@ -242,6 +244,11 @@ export async function POST(request: Request) {
       }
     }
 
+    // Link do lead no painel — usado nas duas notificações (e-mail e WhatsApp)
+    const host = request.headers.get("host");
+    const proto = request.headers.get("x-forwarded-proto") || "https";
+    const leadUrl = host && insertedId ? `${proto}://${host}/admin/${insertedId}` : undefined;
+
     // Notificação por e-mail (Resend) — novo lead
     const notifyRaw =
       (fullForm as unknown as { notifyEmails?: string })?.notifyEmails ||
@@ -252,9 +259,6 @@ export async function POST(request: Request) {
       .map((e) => e.trim())
       .filter(Boolean);
     if (notifyList.length && isEmailConfigured()) {
-      const host = request.headers.get("host");
-      const proto = request.headers.get("x-forwarded-proto") || "https";
-      const leadUrl = host && insertedId ? `${proto}://${host}/admin/${insertedId}` : undefined;
       const mail = await sendLeadEmail({
         to: notifyList,
         formName: row.form_name || row.form_slug,
@@ -272,6 +276,41 @@ export async function POST(request: Request) {
         destinatarios: notifyList,
         error: mail.error,
       });
+    }
+
+    // Notificação por WhatsApp (uazapi) — novo lead.
+    // Destino: o do formulário sobrescreve o padrão do cliente (workspace).
+    if (isWhatsappConfigured()) {
+      const formWa = (fullForm as unknown as { notifyWhatsapp?: string })?.notifyWhatsapp;
+      const waRaw = formWa?.trim()
+        ? formWa
+        : await getWorkspaceNotifyWhatsapp(workspaceId);
+      const waList = parseDestinations(waRaw);
+
+      if (waList.length) {
+        const wa = await sendLeadWhatsapp({
+          to: waList,
+          formName: row.form_name || row.form_slug,
+          nome: row.nome,
+          email: row.email,
+          telefone: row.telefone,
+          score: row.score,
+          tier: row.tier,
+          qualified: row.qualified,
+          tracking: row.tracking as Record<string, unknown>,
+          leadUrl,
+        });
+        track("whatsapp", wa.ok ? "sent" : "failed", {
+          destinos: waList,
+          origem: formWa?.trim() ? "formulario" : "workspace",
+          enviados: wa.sent,
+          falhas: wa.failed,
+          error: wa.error,
+        });
+        if (!wa.ok) {
+          console.error("[Hibrid Forms] Falha no alerta de WhatsApp:", wa.error);
+        }
+      }
     }
 
     // grava o histórico de tudo que foi disparado nesta submissão

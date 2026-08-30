@@ -18,6 +18,7 @@ import { FONT_OPTIONS, DEFAULT_THEME, themeVars } from "@/lib/theme";
 import type { FormRow } from "@/lib/forms-db";
 import { Logo } from "@/components/Logo";
 import { MediaView } from "@/components/MediaView";
+import WhatsappDestinations from "@/components/WhatsappDestinations";
 
 // slugify local (evita importar módulo de servidor no client)
 function slugify(input: string): string {
@@ -206,6 +207,7 @@ export function FormEditor({
   const [theme, setTheme] = useState<ThemeConfig>(cfg.theme ?? {});
   const [webhookUrl, setWebhookUrl] = useState<string>(cfg.webhookUrl ?? "");
   const [notifyEmails, setNotifyEmails] = useState<string>(cfg.notifyEmails ?? "");
+  const [notifyWhatsapp, setNotifyWhatsapp] = useState<string>(cfg.notifyWhatsapp ?? "");
 
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -447,6 +449,7 @@ export function FormEditor({
       logoUrl: logoUrl.trim() || undefined,
       webhookUrl: webhookUrl.trim() || undefined,
       notifyEmails: notifyEmails.trim() || undefined,
+      notifyWhatsapp: notifyWhatsapp.trim() || undefined,
       ...(cfg.kanban ? { kanban: cfg.kanban } : {}),
     };
   }
@@ -945,6 +948,8 @@ export function FormEditor({
             setWebhookUrl={setWebhookUrl}
             notifyEmails={notifyEmails}
             setNotifyEmails={setNotifyEmails}
+            notifyWhatsapp={notifyWhatsapp}
+            setNotifyWhatsapp={setNotifyWhatsapp}
             onSave={save}
           />
         </div>
@@ -1868,6 +1873,8 @@ function IntegrateTab({
   setWebhookUrl,
   notifyEmails,
   setNotifyEmails,
+  notifyWhatsapp,
+  setNotifyWhatsapp,
   onSave,
 }: {
   pixel: PixelConfig;
@@ -1876,6 +1883,8 @@ function IntegrateTab({
   setWebhookUrl: (v: string) => void;
   notifyEmails: string;
   setNotifyEmails: (v: string) => void;
+  notifyWhatsapp: string;
+  setNotifyWhatsapp: (v: string) => void;
   /** Salva o formulário inteiro (mesma ação do botão "Salvar" do topo). */
   onSave: () => void | Promise<void>;
 }) {
@@ -2028,6 +2037,24 @@ function IntegrateTab({
           Dispara só no lead completo. Requer RESEND_API_KEY e RESEND_FROM
           configurados no servidor. Se vazio, usa LEAD_NOTIFY_EMAILS (global).
         </p>
+      </IntegrationCard>
+
+      <IntegrationCard
+        title="Aviso por WhatsApp (novo lead)"
+        desc="Receba um alerta no WhatsApp a cada lead completo — num número ou num grupo. Envio via uazapi."
+        icon={
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366" aria-hidden="true">
+            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.8 14.16c-.24.68-1.4 1.3-1.96 1.38-.5.08-1.13.11-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.8-4.17-4.94-4.36-.15-.19-1.19-1.58-1.19-3.02s.75-2.14 1.02-2.43c.27-.29.58-.37.78-.37.19 0 .39 0 .56.01.18.01.42-.07.66.5.24.58.83 2.02.9 2.17.07.15.12.32.02.51-.1.19-.15.31-.29.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.76 1.25 1.63 2.03 1.12 1 2.06 1.3 2.35 1.45.29.15.46.12.63-.07.17-.19.73-.85.92-1.14.19-.29.39-.24.65-.15.27.1 1.7.8 1.99.95.29.15.48.22.55.34.07.12.07.7-.17 1.38z" />
+          </svg>
+        }
+      >
+        <FieldRow label="Destinos do alerta">
+          <WhatsappDestinations
+            value={notifyWhatsapp}
+            onChange={setNotifyWhatsapp}
+            placeholderHint="Deixe vazio para usar o destino padrão do cliente (definido na página do workspace). Requer UAZAPI_SERVER_URL e UAZAPI_TOKEN no servidor."
+          />
+        </FieldRow>
       </IntegrationCard>
     </div>
   );

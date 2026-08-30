@@ -6,6 +6,7 @@ import { getWorkspace, listUsersOfWorkspace } from "@/lib/users";
 import { listForms } from "@/lib/forms-db";
 import { AdminHeader } from "@/components/AdminHeader";
 import { UsersManager } from "@/components/UsersManager";
+import { WorkspaceWhatsappCard } from "@/components/WorkspaceWhatsappCard";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ export default async function WorkspaceDetail({
 
         <div className="mt-6 grid gap-5">
           <UsersManager workspaceId={ws.id} users={users.map((u) => ({ id: u.id, email: u.email, active: u.active }))} />
+
+          <WorkspaceWhatsappCard workspaceId={ws.id} initial={ws.notify_whatsapp ?? ""} />
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
             <div className="lbl mb-3">Formulários deste cliente</div>

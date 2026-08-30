@@ -143,6 +143,12 @@ export interface FormConfig {
   logoUrl?: string;
   /** e-mails que recebem aviso de novo lead (separados por vírgula) */
   notifyEmails?: string;
+  /**
+   * Destinos de WhatsApp que recebem aviso de novo lead (separados por vírgula).
+   * Cada item é um número com DDI ("5511999998888") ou um JID de grupo
+   * ("120363xxxxxxxxx@g.us"). Vazio = usa o padrão do workspace.
+   */
+  notifyWhatsapp?: string;
 
   // ---------------------------------------------------------------
   // Versões que compartilham a mesma base de leads

@@ -8,7 +8,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 // atual, usado pelos badges); esta tabela é a memória do que aconteceu.
 // ============================================================
 
-export type Destination = "google_ads" | "meta_capi" | "ga4" | "crm" | "email";
+export type Destination = "google_ads" | "meta_capi" | "ga4" | "crm" | "email" | "whatsapp";
 export type Trigger = "automatic" | "manual_kanban" | "historico";
 export type LogStatus = "sent" | "failed" | "skipped";
 
@@ -89,6 +89,7 @@ export const DESTINATION_LABEL: Record<string, string> = {
   ga4: "GA4",
   crm: "CRM",
   email: "E-mail",
+  whatsapp: "WhatsApp",
 };
 
 export const TRIGGER_LABEL: Record<string, string> = {

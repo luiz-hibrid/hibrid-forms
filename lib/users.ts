@@ -18,6 +18,12 @@ export interface WorkspaceRow {
   slug: string;
   active: boolean;
   created_at: string;
+  /**
+   * Destino padrão dos alertas de novo lead no WhatsApp deste cliente
+   * (lista separada por vírgula: números com DDI e/ou JIDs de grupo).
+   * Cada formulário pode sobrescrever via `FormConfig.notifyWhatsapp`.
+   */
+  notify_whatsapp: string | null;
 }
 
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
@@ -66,6 +72,35 @@ export async function createWorkspace(name: string): Promise<WorkspaceRow | null
     .select("*")
     .single();
   return (data as WorkspaceRow) ?? null;
+}
+
+/** Destino padrão de alerta no WhatsApp do cliente. Vazio remove o padrão. */
+export async function setWorkspaceNotifyWhatsapp(
+  workspaceId: string,
+  value: string
+): Promise<boolean> {
+  const sb = getSupabaseAdmin();
+  if (!sb) return false;
+  const { error } = await sb
+    .from("workspaces")
+    .update({ notify_whatsapp: value.trim() || null })
+    .eq("id", workspaceId);
+  return !error;
+}
+
+/** Só o destino de WhatsApp — usado pelo pipeline de submissão. */
+export async function getWorkspaceNotifyWhatsapp(
+  workspaceId: string | null
+): Promise<string | null> {
+  if (!workspaceId) return null;
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("workspaces")
+    .select("notify_whatsapp")
+    .eq("id", workspaceId)
+    .maybeSingle();
+  return (data as { notify_whatsapp: string | null } | null)?.notify_whatsapp ?? null;
 }
 
 export async function listUsersOfWorkspace(workspaceId: string): Promise<UserRow[]> {
