@@ -154,7 +154,7 @@ export function OptimizePanel({ formId, steps }: { formId: string; steps: Field[
   const conf = a ? CONF[a.confianca] ?? CONF.media : null;
 
   return (
-    <div className="mx-auto max-w-[860px]">
+    <div className="w-full">
       {/* cabeçalho */}
       <div className="dash-in flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <div className="min-w-0">

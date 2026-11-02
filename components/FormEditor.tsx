@@ -1,6 +1,7 @@
 "use client";
 
 import { PillTabs } from "@/components/PillTabs";
+import { AdminTools } from "@/components/AdminTools";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
@@ -490,8 +491,8 @@ export function FormEditor({
   return (
     <div className="flex h-screen flex-col bg-[var(--bg)]">
       {/* ===== Top bar ===== */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
-        <div className="flex min-w-0 flex-1 items-center gap-3">
+      <div className="ga-top ga-top--wide shrink-0">
+        <div className="ga-top__left">
           <button
             onClick={() => router.push("/admin/forms")}
             className="shrink-0 text-[var(--text2)] hover:text-[var(--text)]"
@@ -500,7 +501,7 @@ export function FormEditor({
             ←
           </button>
           <span className="shrink-0">
-            <Logo height={30} />
+            <Logo height={44} />
           </span>
           <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
             {name}
@@ -527,7 +528,8 @@ export function FormEditor({
           </a>
         </PillTabs>
 
-        <div className="flex flex-1 items-center justify-end gap-3">
+        <div className="ga-top__right">
+          <AdminTools>
           {msg && (
             <span className="mono text-[0.7rem] text-[var(--text3)]">{msg}</span>
           )}
@@ -546,6 +548,7 @@ export function FormEditor({
           >
             {saving ? "Salvando…" : "Salvar"}
           </button>
+          </AdminTools>
         </div>
       </div>
 

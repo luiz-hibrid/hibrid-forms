@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
-import { LogoutButton } from "@/components/LogoutButton";
+import { AdminTools } from "@/components/AdminTools";
 import { AdminNav } from "@/components/AdminNav";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { getSession, activeWorkspaceId } from "@/lib/auth";
@@ -43,7 +43,7 @@ export async function AdminHeader() {
       </div>
       {s ? <AdminNav role={s.role} /> : <div />}
       <div className="ga-top__right">
-        <LogoutButton />
+        <AdminTools />
       </div>
     </header>
   );

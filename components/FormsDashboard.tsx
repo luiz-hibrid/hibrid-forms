@@ -98,7 +98,7 @@ export function FormsDashboard({
         <HeadStat label="Respostas" value={totalResponses} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 5.2a3.5 3.5 0 010 6.6M18 15c1.8.6 3 2.2 3.5 5" />
       </div>
     </div>
-    <div className="ga-cols mx-auto max-w-[1240px] px-4 py-7 sm:px-8">
+    <div className="ga-cols ga-wrap">
       {/* Conteúdo */}
       <div className="min-w-0 flex-1">
         {/* Toolbar */}

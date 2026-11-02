@@ -169,7 +169,7 @@ export function ConversionLogTable({
   }, [data]);
 
   return (
-    <div className="mx-auto max-w-[1000px]">
+    <div className="w-full">
       <div className="dash-in rounded-2xl border border-[var(--border)] bg-[var(--card)]">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>

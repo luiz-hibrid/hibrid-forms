@@ -40,7 +40,7 @@ export default async function WorkspaceDetail({
         </div>
         <p className="mono pb-2 text-[11px] text-[var(--text3)]">/{ws.slug}</p>
       </div>
-      <div className="mx-auto max-w-[1240px] px-4 py-7 sm:px-8">
+      <div className="ga-wrap">
 
         <div className="mt-6 grid gap-5">
           <UsersManager workspaceId={ws.id} users={users.map((u) => ({ id: u.id, email: u.email, active: u.active }))} />

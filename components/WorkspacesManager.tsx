@@ -46,7 +46,7 @@ export function WorkspacesManager({ workspaces }: { workspaces: WsItem[] }) {
           <HeadStat label="Usuários" value={users} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5" />
         </div>
       </div>
-      <div className="mx-auto max-w-[1240px] px-4 py-7 sm:px-8">
+      <div className="ga-wrap">
         <p className="mb-5 text-sm text-[var(--text2)]">
           Cada cliente é um workspace com seus formulários, leads e logins.
         </p>

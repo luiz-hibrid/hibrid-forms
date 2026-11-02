@@ -13,6 +13,9 @@
    ============================================================ */
 
 .gl-admin {
+  /* largura fluida como no Solvik: preenche a tela até 1840px, com margem lateral proporcional */
+  --ga-max: 1840px;
+  --ga-gutter: clamp(16px, 1.6vw, 28px);
   --gl-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --gl-blur: blur(22px) saturate(150%);
   --gl-glass: rgba(255, 255, 255, 0.5);
@@ -83,9 +86,9 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 16px;
-  max-width: 1240px;
+  max-width: var(--ga-max);
   margin: 0 auto;
-  padding: 18px clamp(16px, 2.2vw, 32px) 6px;
+  padding: 18px var(--ga-gutter) 6px;
 }
 /* o cabeçalho (e o menu de clientes dentro dele) precisa ficar acima do conteúdo: a animação cria um contexto de empilhamento por elemento */
 .ga-top { position: relative; z-index: 30; }
@@ -150,9 +153,9 @@
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 18px 44px;
-  max-width: 1240px;
+  max-width: var(--ga-max);
   margin: 0 auto;
-  padding: 26px clamp(16px, 2.2vw, 32px) 0;
+  padding: 26px var(--ga-gutter) 0;
 }
 .ga-head h1 {
   margin: 0;
@@ -293,7 +296,7 @@
 }
 
 /* ---------- resultados: dock lateral, tabela compacta, KPIs ---------- */
-.rv-main { padding-top: 6px; }
+.rv-main { padding-top: 6px; max-width: var(--ga-max); margin-inline: auto; padding-inline: var(--ga-gutter) !important; }
 @media (min-width: 900px) { .rv-main { padding-left: 112px !important; } }
 .ga-head--in { max-width: none; padding-left: 0; padding-right: 0; margin-bottom: 18px; }
 .ga-dock {
@@ -536,3 +539,63 @@
 .ld-actions { display: flex; gap: 10px; margin-top: auto; padding-top: 4px; }
 .ld-btn { display: inline-flex; align-items: center; justify-content: center; height: 46px; padding: 0 24px; border-radius: 999px; font-weight: 700; font-size: 14px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; }
 .ld-btn--accent { background: var(--accent); color: #13171a; border-color: transparent; }
+
+/* cabeçalho "solto" (sem faixa de fundo) das telas do editor e de resultados */
+.ga-top--wide { width: 100%; max-width: none; padding: 16px var(--ga-gutter) 8px; }
+.ga-top__left { gap: 14px; }
+.ga-top__right { gap: 14px; }
+.ga-top--wide .ga-top__left > span:last-child { font-size: 15px; font-weight: 600; color: var(--text); max-width: 260px; }
+
+/* ---------- topo direito: atividade, notificações e menu do usuário ---------- */
+.ga-tools { display: flex; align-items: center; gap: 10px; }
+.ga-pop-wrap { position: relative; }
+.ga-ibtn, .ga-me {
+  position: relative; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  color: var(--text); background: var(--gl-glass-2); border: 1px solid var(--gl-rim);
+  -webkit-backdrop-filter: var(--gl-blur); backdrop-filter: var(--gl-blur); transition: transform 0.3s var(--gl-ease), background 0.2s;
+}
+.ga-ibtn:hover, .ga-me:hover { transform: translateY(-2px); background: var(--gl-solid); }
+.ga-me { background: color-mix(in srgb, var(--accent) 55%, var(--gl-solid)); color: #13171a; font-weight: 800; font-size: 13px; box-shadow: 0 0 0 3px var(--gl-glass-2); }
+.ga-dot-badge { position: absolute; top: 8px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: #f27d5f; box-shadow: 0 0 0 2px var(--gl-solid); }
+.ga-pop {
+  position: absolute; z-index: 60; top: calc(100% + 10px); right: 0; padding: 10px; border-radius: 22px;
+  background: var(--gl-solid); color: var(--text); border: 1px solid var(--gl-rim); box-shadow: var(--gl-pop);
+  transform-origin: top right;
+}
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ga-pop-in { from { opacity: 0; transform: translateY(-6px) scale(0.95); } to { opacity: 1; transform: none; } }
+  .ga-pop { animation: ga-pop-in 0.3s var(--gl-ease) both; }
+}
+.ga-pop--menu { width: 270px; }
+.ga-pop--wide { width: min(380px, 92vw); }
+.ga-pop__who { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.ga-pop__who b { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ga-pop__role { flex: none; padding: 2px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; text-transform: uppercase; background: rgba(36, 111, 219, 0.14); color: #2f6fd6; }
+.ga-menu__item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border-radius: 14px; border: 0; background: transparent; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--text); text-align: left; transition: background 0.2s;
+}
+.ga-menu__item:hover { background: var(--bg); }
+.ga-menu__item svg { flex: none; }
+.ga-menu__check { margin-left: auto; display: inline-flex; }
+.ga-menu__item.is-danger { color: #c4452a; }
+.ga-menu__sep { margin: 6px 4px; border: 0; border-top: 1px solid var(--border); }
+.ga-pop__head { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 12px 10px; font-weight: 600; font-size: 14px; }
+.ga-pop__sub { font-size: 12px; font-weight: 400; color: var(--text2); }
+.ga-pop__list { max-height: 360px; overflow-y: auto; }
+.ga-pop__empty { padding: 22px 12px; text-align: center; font-size: 13px; color: var(--text2); }
+.ga-pop__row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; transition: background 0.2s; }
+.ga-pop__row:hover { background: var(--bg); }
+.ga-pop__ico { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--text); }
+.ga-pop__ico.is-bad { background: var(--danger-dim); color: var(--red); }
+.ga-pop__txt { min-width: 0; display: flex; flex-direction: column; }
+.ga-pop__txt b { font-size: 13px; font-weight: 600; }
+.ga-pop__txt small { font-size: 11.5px; color: var(--text2); }
+.ga-act__title { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.ga-act { list-style: none; margin: 0; padding: 0; }
+.ga-act li + li { border-top: 1px solid var(--border); }
+.ga-act__row { display: flex; align-items: center; gap: 12px; padding: 12px 2px; }
+.ga-act__what { font-weight: 400; color: var(--text2); }
+
+/* contêiner de página fluido (listas, clientes): mesma largura e margem do cabeçalho */
+.ga-wrap { width: 100%; max-width: var(--ga-max); margin-inline: auto; padding: 28px var(--ga-gutter); }

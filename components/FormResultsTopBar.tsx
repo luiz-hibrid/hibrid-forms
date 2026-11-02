@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PillTabs } from "@/components/PillTabs";
 import { Logo } from "@/components/Logo";
+import { AdminTools } from "@/components/AdminTools";
 
 export function FormResultsTopBar({
   formId,
@@ -12,13 +13,13 @@ export function FormResultsTopBar({
   canManage?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+    <div className="ga-top ga-top--wide">
+      <div className="ga-top__left">
         <Link href="/admin/forms" aria-label="Voltar" className="shrink-0 text-[var(--text2)] hover:text-[var(--text)]">
           ←
         </Link>
         <Link href="/admin/forms" className="shrink-0">
-          <Logo height={30} />
+          <Logo height={44} />
         </Link>
         <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
           {formName}
@@ -39,15 +40,14 @@ export function FormResultsTopBar({
         </span>
       </PillTabs>
 
-      <div className="flex flex-1 items-center justify-end">
-        {canManage && (
-          <Link
-            href={`/admin/forms/${formId}`}
-            className="rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text2)] transition hover:border-[#bbb] hover:text-[var(--text)]"
-          >
-            Editar
-          </Link>
-        )}
+      <div className="ga-top__right">
+        <AdminTools>
+          {canManage && (
+            <Link href={`/admin/forms/${formId}`} className="ga-pill-btn">
+              Editar
+            </Link>
+          )}
+        </AdminTools>
       </div>
     </div>
   );
