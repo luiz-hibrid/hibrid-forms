@@ -501,7 +501,7 @@ export function FormEditor({
             ←
           </button>
           <span className="shrink-0">
-            <Logo height={44} />
+            <Logo height={53} />
           </span>
           <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
             {name}
@@ -2050,7 +2050,7 @@ function IntegrateTab({
           <WhatsappDestinations
             value={notifyWhatsapp}
             onChange={setNotifyWhatsapp}
-            placeholderHint="Deixe vazio para usar o destino padrão do cliente (definido na página do workspace). Requer UAZAPI_SERVER_URL e UAZAPI_TOKEN no servidor."
+            placeholderHint="Deixe vazio para usar o destino padrão do cliente (definido na página do cliente). Requer UAZAPI_SERVER_URL e UAZAPI_TOKEN no servidor."
           />
         </FieldRow>
       </IntegrationCard>

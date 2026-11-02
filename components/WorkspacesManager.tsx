@@ -41,14 +41,14 @@ export function WorkspacesManager({ workspaces }: { workspaces: WsItem[] }) {
           Clientes
         </h1>
         <div className="ga-stats">
-          <HeadStat label="Workspaces" value={workspaces.length} d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" />
+          <HeadStat label="Clientes" value={workspaces.length} d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" />
           <HeadStat label="Formulários" value={forms} d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />
           <HeadStat label="Usuários" value={users} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5" />
         </div>
       </div>
       <div className="ga-wrap">
         <p className="mb-5 text-sm text-[var(--text2)]">
-          Cada cliente é um workspace com seus formulários, leads e logins.
+          Cada cliente tem seus formulários, leads e logins.
         </p>
 
         <div className="mb-6 flex max-w-[640px] gap-2">

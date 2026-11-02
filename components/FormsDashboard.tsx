@@ -77,7 +77,7 @@ export function FormsDashboard({
     setCreating(false);
     if (res.ok && data.id) router.push(`/admin/forms/${data.id}`);
     else if (data.error === "selecione_workspace")
-      alert("Selecione um cliente no seletor de workspace antes de criar o formulário.");
+      alert("Selecione um cliente no seletor de cliente antes de criar o formulário.");
     else alert("Não foi possível criar o formulário.");
   }
 
@@ -447,7 +447,7 @@ function FormMenu({
                   <Divider />
                   <MenuItem icon={<IcoDuplicate />} onClick={duplicate}>Duplicar</MenuItem>
                   <MenuItem icon={<IcoMove />} onClick={() => setMoving(true)} chevron>
-                    Mover para workspace
+                    Mover para cliente
                   </MenuItem>
                   <MenuItem icon={<IcoExport />} onClick={() => { close(); window.location.href = `/api/admin/export?form=${form.slug}`; }}>
                     Exportar

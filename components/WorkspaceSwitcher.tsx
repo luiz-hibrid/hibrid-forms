@@ -48,7 +48,7 @@ export function WorkspaceSwitcher({
   const active =
     workspaces.find((w) => w.id === activeId) ??
     (role === "master" ? null : workspaces[0] ?? null);
-  const label = active?.name ?? (role === "master" ? "Todos os clientes" : "Workspace");
+  const label = active?.name ?? (role === "master" ? "Todos os clientes" : "Cliente");
 
   async function pick(id: string | null) {
     await fetch("/api/admin/workspace", {
@@ -88,7 +88,7 @@ export function WorkspaceSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-50 w-[280px] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-xl">
+        <div className="ga-switch absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl">
           <div className="flex items-center justify-between px-3 py-2.5">
             <span className="mono truncate text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
               {userEmail}

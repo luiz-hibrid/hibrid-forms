@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/admin/forms", label: "Formulários", master: false },
-  { href: "/admin/workspaces", label: "Workspaces", master: true },
+  { href: "/admin/workspaces", label: "Clientes", master: true },
 ];
 
 export function AdminNav({ role }: { role: "master" | "client" }) {

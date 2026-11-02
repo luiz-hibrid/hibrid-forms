@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { PillTabs } from "@/components/PillTabs";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -271,6 +272,8 @@ export function ResultsView({
               <LeadsRail
                 submissions={ownSubmissions}
                 steps={steps}
+                columns={kanbanColumns}
+                onChange={() => router.refresh()}
                 onSeeAll={() => setTab("responses")}
               />
             }
@@ -288,6 +291,7 @@ export function ResultsView({
             submissions={submissions}
             exportSlugs={exportSlugs}
             variantLabels={hasGroup ? variantLabels : null}
+            columns={kanbanColumns}
             onChange={() => router.refresh()}
           />
         </div>
@@ -530,10 +534,14 @@ function Kpi({ n, label }: { n: React.ReactNode; label: string }) {
 function LeadsRail({
   submissions,
   steps,
+  columns,
+  onChange,
   onSeeAll,
 }: {
   submissions: Submission[];
   steps: Field[];
+  columns: Column[];
+  onChange: () => void;
   onSeeAll: () => void;
 }) {
   const [filter, setFilter] = useState<"complete" | "all">("complete");
@@ -615,7 +623,7 @@ function LeadsRail({
       </footer>
 
       {viewed && (
-        <LeadQuickView submission={viewed} steps={steps} onClose={() => setViewId(null)} />
+        <LeadDrawer submission={viewed} steps={steps} columns={columns} onChange={onChange} onClose={() => setViewId(null)} />
       )}
     </div>
   );
@@ -627,10 +635,12 @@ function Responses({
   submissions,
   exportSlugs,
   variantLabels,
+  columns,
   onChange,
 }: {
   steps: Field[];
   submissions: Submission[];
+  columns: Column[];
   /** slugs incluídos na exportação — todas as versões do grupo */
   exportSlugs: string[];
   /** slug → rótulo da versão; null quando o formulário não tem versões */
@@ -967,132 +977,12 @@ function Responses({
       )}
 
       {viewed && (
-        <LeadQuickView submission={viewed} steps={steps} onClose={() => setViewId(null)} />
+        <LeadDrawer submission={viewed} steps={steps} columns={columns} onChange={onChange} onClose={() => setViewId(null)} />
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------- Lightbox de leitura
-function LeadQuickView({
-  submission,
-  steps,
-  onClose,
-}: {
-  submission: Submission;
-  steps: Field[];
-  onClose: () => void;
-}) {
-  const wa = (() => {
-    if (!submission.telefone) return null;
-    const d = String(submission.telefone).replace(/\D/g, "");
-    const num = d.length <= 11 ? `55${d}` : d;
-    const first = (submission.nome || "").trim().split(" ")[0] || "";
-    const msg = encodeURIComponent(
-      `Olá${first ? ` ${first}` : ""}! Recebi seu contato pelo formulário da Hibrid.`
-    );
-    return `https://wa.me/${num}?text=${msg}`;
-  })();
-
-  return (
-    <div
-      className="lb-overlay fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="lb-panel flex max-h-[90vh] w-full max-w-[720px] flex-col overflow-hidden rounded-t-2xl bg-[var(--card)] shadow-2xl sm:rounded-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
-          <div className="min-w-0">
-            <h2 className="truncate text-[1.3rem] font-black tracking-tight text-[var(--text)]">
-              {submission.nome || "Lead sem nome"}
-            </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-[var(--text2)]">
-              {submission.email && <span className="truncate">{submission.email}</span>}
-              {submission.telefone && <span className="mono">{submission.telefone}</span>}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <div className="text-right">
-              <div className="text-[1.7rem] font-black leading-none text-[var(--text)]">
-                {submission.score}
-              </div>
-              <div className="lbl mt-0.5">Score</div>
-            </div>
-            <button onClick={onClose} className="text-[var(--text3)] hover:text-[var(--text)]" aria-label="Fechar">✕</button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 py-2.5">
-          <TierBadge tier={submission.tier} />
-          <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
-            {submission.status === "complete" ? "Completa" : "Parcial"}
-          </span>
-          <GadsBadge status={submission.gads_status} error={submission.gads_error} qualified={submission.qualified} />
-          {wa && (
-            <a
-              href={wa}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-95"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0012.04 2zm5.8 14.03c-.24.68-1.42 1.31-1.95 1.35-.5.05-.97.24-3.27-.68-2.77-1.09-4.53-3.92-4.67-4.11-.14-.19-1.13-1.5-1.13-2.86 0-1.36.71-2.03.96-2.31.25-.27.55-.34.73-.34.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.56.81 1.96.88 2.1.07.14.12.31.02.5-.09.19-.14.31-.28.47-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.27.71 1.17 1.53 1.9 1.05.93 1.93 1.22 2.21 1.36.28.14.44.12.6-.07.17-.19.69-.81.87-1.09.18-.28.36-.23.61-.14.25.09 1.6.75 1.87.89z" />
-              </svg>
-              WhatsApp
-            </a>
-          )}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="divide-y divide-[var(--border)]">
-            {steps.map((s, i) => (
-              <div key={s.id} className="flex items-start gap-3 py-3">
-                <NumberedIcon type={s.type} n={i + 1} />
-                <div className="min-w-0">
-                  <div className="font-medium text-[var(--text)]">{s.title}</div>
-                  <div className="mt-0.5 text-[var(--text2)]">
-                    {answerText(s, submission.answers?.[s.id])}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {(submission.tracking?.utm_source ||
-            submission.tracking?.utm_campaign ||
-            submission.tracking?.gclid) && (
-            <div className="mt-4 rounded-xl border border-[var(--border)] p-3">
-              <div className="mono mb-2 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">Origem</div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-[var(--text2)]">
-                {submission.tracking?.utm_source && <span>Fonte: <b className="text-[var(--text)]">{submission.tracking.utm_source}</b></span>}
-                {submission.tracking?.utm_campaign && <span>Campanha: <b className="text-[var(--text)]">{submission.tracking.utm_campaign}</b></span>}
-                {submission.tracking?.gclid && <span className="mono text-[0.7rem]">gclid ✓</span>}
-              </div>
-            </div>
-          )}
-
-          <div className="mt-4 rounded-xl border border-[var(--border)] p-3">
-            <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
-              Histórico de envios
-            </div>
-            <ConversionTimeline submissionId={submission.id} />
-          </div>
-
-          <div className="mt-4 flex items-center justify-between">
-            <span className="mono text-[0.62rem] text-[var(--text3)]">
-              #{submission.id.slice(0, 12).toUpperCase()} · {fmtDate(submission.created_at)}
-            </span>
-            <Link href={`/admin/${submission.id}`} className="mono text-[0.72rem] text-[var(--text2)] hover:text-[var(--text)] hover:underline">
-              abrir página completa →
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------- Kanban
 function Kanban({
@@ -1370,6 +1260,50 @@ function Kanban({
   );
 }
 
+// Gaveta de detalhes do lead usada fora do Kanban (Resumo e Respostas): mesma gaveta,
+// com estágio e labels gravados pela mesma API e refletidos na hora (override local).
+function LeadDrawer({
+  submission,
+  steps,
+  columns,
+  onClose,
+  onChange,
+}: {
+  submission: Submission;
+  steps: Field[];
+  columns: Column[];
+  onClose: () => void;
+  onChange: () => void;
+}) {
+  const [patch, setPatch] = useState<Partial<Submission>>({});
+  const merged = { ...submission, ...patch } as Submission;
+  async function send(body: Record<string, unknown>) {
+    await fetch(`/api/admin/submissions/${submission.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    onChange();
+  }
+  return (
+    <LeadModal
+      submission={merged}
+      steps={steps}
+      columns={columns.length ? columns : [{ id: "nao_iniciado", name: "Não iniciado" }]}
+      onClose={onClose}
+      onStage={(stage) => {
+        const q = !!columns.find((c) => c.id === stage)?.qualified;
+        setPatch((p) => ({ ...p, stage, ...(q ? { qualified: true } : {}) }));
+        send(q ? { stage, qualify: true } : { stage });
+      }}
+      onLabels={(labels) => {
+        setPatch((p) => ({ ...p, labels }));
+        send({ labels });
+      }}
+    />
+  );
+}
+
 // ---------------------------------------------------------------- Detalhes do lead (gaveta lateral)
 function LeadModal({
   submission,
@@ -1424,7 +1358,11 @@ function LeadModal({
     return `https://wa.me/${num}?text=${msg}`;
   })();
 
-  return (
+  // Portal: o overlay é "fixed", mas os cartões de vidro (backdrop-filter) prendem elementos fixos
+  // dentro deles. Renderizar no wrapper .gl-admin (que mantém os tokens de tema) garante que
+  // a gaveta cubra a tela inteira, por cima de todas as camadas.
+  const host = typeof document !== "undefined" ? document.querySelector<HTMLElement>(".gl-admin") : null;
+  const node = (
     <div className={`ld-overlay${closing ? " is-closing" : ""}`} onClick={close}>
       <aside
         className="ld-panel"
@@ -1579,6 +1517,7 @@ function LeadModal({
       </aside>
     </div>
   );
+  return host ? createPortal(node, host) : node;
 }
 
 function NumberedIcon({ type, n }: { type: Field["type"]; n: number }) {

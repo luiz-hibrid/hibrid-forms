@@ -4,6 +4,7 @@ import { isSupabaseConfigured, getSupabaseAdmin } from "@/lib/supabase";
 import { listForms } from "@/lib/forms-db";
 import { listWorkspaces } from "@/lib/users";
 import { AdminHeader } from "@/components/AdminHeader";
+import { AdminDock } from "@/components/AdminDock";
 import { FormsDashboard, type RecentLead } from "@/components/FormsDashboard";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function FormsPage() {
   return (
     <main className="min-h-screen bg-[var(--bg)]">
       <AdminHeader />
+      <AdminDock role={s.role} />
       <FormsDashboard
         forms={forms}
         canManage={s.role === "master"}

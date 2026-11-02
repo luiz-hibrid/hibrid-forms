@@ -100,6 +100,13 @@ export function AdminTools({ children }: { children?: React.ReactNode }) {
     return () => clearInterval(t);
   }, [load]);
 
+  // o dock da home também troca o tema: mantém o menu em sincronia
+  useEffect(() => {
+    const on = () => setTheme(readTheme());
+    window.addEventListener("hf-theme", on);
+    return () => window.removeEventListener("hf-theme", on);
+  }, []);
+
   // tema "seguir o sistema" reage à troca do sistema
   useEffect(() => {
     if (theme !== "system") return;
@@ -136,6 +143,7 @@ export function AdminTools({ children }: { children?: React.ReactNode }) {
     } catch {
       /* ignora */
     }
+    window.dispatchEvent(new Event("hf-theme"));
   }
   function openNotif() {
     setPanel(panel === "notif" ? null : "notif");
@@ -208,7 +216,7 @@ export function AdminTools({ children }: { children?: React.ReactNode }) {
             </Link>
             {user.role === "master" && (
               <Link role="menuitem" href="/admin/workspaces" className="ga-menu__item" onClick={() => setPanel(null)}>
-                <Ico d={ICON.gear} /> Clientes e workspaces
+                <Ico d={ICON.gear} /> Clientes
               </Link>
             )}
             <hr className="ga-menu__sep" />

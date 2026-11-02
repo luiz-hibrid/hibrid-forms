@@ -30,20 +30,21 @@ export async function AdminHeader() {
     <header className="ga-top">
       <div className="ga-top__left">
         <Link href="/admin/forms" aria-label="Início" className="transition hover:opacity-80">
-          <Logo height={40} />
+          <Logo height={48} />
         </Link>
-        {s && (
-          <WorkspaceSwitcher
-            role={s.role}
-            workspaces={workspaces}
-            activeId={activeWorkspaceId()}
-            userEmail={userEmail}
-          />
-        )}
       </div>
       {s ? <AdminNav role={s.role} /> : <div />}
       <div className="ga-top__right">
-        <AdminTools />
+        <AdminTools>
+          {s && (
+            <WorkspaceSwitcher
+              role={s.role}
+              workspaces={workspaces}
+              activeId={activeWorkspaceId()}
+              userEmail={userEmail}
+            />
+          )}
+        </AdminTools>
       </div>
     </header>
   );

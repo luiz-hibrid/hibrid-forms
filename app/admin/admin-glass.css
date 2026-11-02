@@ -42,16 +42,31 @@
   color: var(--text);
   background: #e8ebe6;
 }
+/* Fundo igual ao do Solvik: foto desfocada por baixo + "wash" em degradê por cima.
+   (a foto é public/backdrop.jpg; o wash clareia/escurece conforme o tema) */
+.gl-admin { --ga-wash: linear-gradient(180deg, #f0f3eea8, #f0f3ee99 45%, #ecefe9b3); }
+.gl-admin[data-theme="dark"] { --ga-wash: linear-gradient(180deg, #080b0a80, #080b0a6b 45%, #080b0a8c); }
 .gl-admin-bg {
   position: fixed;
-  inset: 0;
+  top: 0; left: 0; right: 0;
+  height: 100lvh;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(60% 50% at 12% 0%, rgba(184, 245, 49, 0.28), transparent 70%),
-    radial-gradient(50% 45% at 100% 20%, rgba(120, 160, 255, 0.2), transparent 70%),
-    radial-gradient(70% 60% at 60% 110%, rgba(255, 170, 130, 0.22), transparent 70%),
-    linear-gradient(180deg, #eef1ec, #e6eae4);
+  overflow: hidden;
+  background: #e9ece7;
+}
+.gl-admin[data-theme="dark"] .gl-admin-bg { background: #111513; }
+.gl-admin-bg::before {
+  content: "";
+  position: absolute;
+  inset: -4%;
+  background: url("/backdrop.jpg") center / cover no-repeat;
+  will-change: transform;
+}
+.gl-admin-bg::after { content: ""; position: absolute; inset: 0; background: var(--ga-wash); }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ga-drift { to { transform: scale(1.05) translate(-1.2%, 0.8%); } }
+  .gl-admin-bg::before { animation: ga-drift 26s ease-in-out infinite alternate; }
 }
 /* a página deixa o fundo de vidro aparecer */
 .gl-admin main { background: transparent !important; }
@@ -212,13 +227,6 @@
   --success: #8fe070;
   --red: #ff8c6e;
   --chart-grid: rgba(255, 255, 255, 0.08);
-}
-.gl-admin[data-theme="dark"] .gl-admin-bg {
-  background:
-    radial-gradient(55% 45% at 10% -5%, rgba(184, 245, 49, 0.15), transparent 70%),
-    radial-gradient(45% 40% at 100% 15%, rgba(90, 130, 255, 0.16), transparent 70%),
-    radial-gradient(70% 55% at 55% 115%, rgba(242, 125, 95, 0.13), transparent 70%),
-    linear-gradient(180deg, #0f1411, #0b0f0d);
 }
 /* botões/pílulas "tinta": fundo claro → texto escuro */
 .gl-admin[data-theme="dark"] [class*="bg-[var(--text)]"],
@@ -599,3 +607,74 @@
 
 /* contêiner de página fluido (listas, clientes): mesma largura e margem do cabeçalho */
 .ga-wrap { width: 100%; max-width: var(--ga-max); margin-inline: auto; padding: 28px var(--ga-gutter); }
+
+/* ---------- menu lateral da home (dock) ---------- */
+.ga-dock--home { top: 50%; }
+.ga-dock__sep { height: 1px; margin: 4px 10px; background: var(--gl-line); }
+a.ga-dock__btn { text-decoration: none; }
+.ga-dock__btn[data-active="true"]::after {
+  content: ""; position: absolute; right: -2px; top: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translate(50%, -50%);
+  background: var(--accent); box-shadow: 0 0 0 2px var(--gl-solid);
+}
+.ga-dock__btn:disabled { opacity: 0.55; cursor: progress; }
+@media (min-width: 900px) { .ga-cols.ga-wrap, .ga-head { padding-left: calc(var(--ga-gutter) + 84px); } }
+.ga-toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; padding: 12px 20px; border-radius: 999px;
+  background: var(--gl-solid); color: var(--text); border: 1px solid var(--gl-rim); box-shadow: var(--gl-pop); font-size: 13.5px; font-weight: 600;
+}
+.ga-finder-overlay {
+  position: fixed; inset: 0; z-index: 85; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 16px 16px;
+  background: rgba(14, 20, 16, 0.32); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.ga-finder, .ga-modal {
+  width: min(620px, 100%); border-radius: 26px; background: var(--gl-solid); color: var(--text); border: 1px solid var(--gl-rim); box-shadow: var(--gl-pop);
+}
+.ga-modal { width: min(440px, 100%); padding: 24px; display: flex; flex-direction: column; gap: 14px; align-self: flex-start; }
+.ga-modal h2 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ga-fin-in { from { opacity: 0; transform: translateY(-14px) scale(0.97); } to { opacity: 1; transform: none; } }
+  .ga-finder, .ga-modal { animation: ga-fin-in 0.38s var(--gl-ease) both; }
+}
+.ga-finder__bar { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); color: var(--text3); }
+.ga-finder__bar input { flex: 1; min-width: 0; background: none; border: 0; outline: none; font: inherit; font-size: 15px; color: var(--text); }
+.ga-finder__bar kbd { padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 11px; color: var(--text3); }
+.ga-finder__list { list-style: none; margin: 0; padding: 8px; max-height: 52vh; overflow-y: auto; }
+.ga-finder__empty { padding: 28px 12px; text-align: center; font-size: 13px; color: var(--text2); }
+.ga-finder__opt { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 16px; cursor: pointer; }
+.ga-finder__opt[aria-selected="true"] { background: var(--bg); }
+.ga-finder__tag { margin-left: auto; padding: 3px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; background: var(--bg); color: var(--text2); }
+
+/* na home (com o dock lateral) a logo acompanha o recuo do título "Meus Formulários" */
+@media (min-width: 900px) {
+  .gl-admin:has(.ga-dock--home) .ga-top:not(.ga-top--wide) { padding-left: calc(var(--ga-gutter) + 84px); }
+}
+
+/* menu de seleção de cliente: ao abrir, o painel "brota" do botão e os itens entram em sequência */
+.ga-switch { transform-origin: top right; background: var(--gl-solid) !important; box-shadow: var(--gl-pop) !important; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes ga-sw-in { from { opacity: 0; transform: translateY(-8px) scale(0.94); } to { opacity: 1; transform: none; } }
+  @keyframes ga-sw-item { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+  .ga-switch { animation: ga-sw-in 0.38s var(--gl-ease) both; }
+  .ga-switch > :nth-child(1) { animation: ga-sw-item 0.4s var(--gl-ease) 60ms both; }
+  .ga-switch > :nth-child(2) > * { animation: ga-sw-item 0.4s var(--gl-ease) both; }
+  .ga-switch > :nth-child(2) > :nth-child(1) { animation-delay: 100ms; }
+  .ga-switch > :nth-child(2) > :nth-child(2) { animation-delay: 145ms; }
+  .ga-switch > :nth-child(2) > :nth-child(3) { animation-delay: 190ms; }
+  .ga-switch > :nth-child(2) > :nth-child(4) { animation-delay: 235ms; }
+  .ga-switch > :nth-child(2) > :nth-child(n + 5) { animation-delay: 280ms; }
+  .ga-switch > :nth-child(3) { animation: ga-sw-item 0.4s var(--gl-ease) 300ms both; }
+  .ga-switch button { transition: background 0.2s, transform 0.3s var(--gl-ease); }
+  .ga-switch button:hover { transform: translateX(3px); }
+}
+
+/* Resultados: a logo acompanha o recuo do título (o dock lateral ocupa a margem esquerda);
+   a seta de voltar fica na margem, fora do alinhamento */
+@media (min-width: 900px) {
+  .gl-admin:has(.rv-main) .ga-top--wide { padding-left: 112px; }
+  .gl-admin:has(.rv-main) .ga-top--wide .ga-top__left { position: relative; }
+  .gl-admin:has(.rv-main) .ga-top--wide .ga-top__left > a:first-child {
+    position: absolute; left: calc(var(--ga-gutter) - 112px); top: 50%; transform: translateY(-50%);
+  }
+}
+/* o título de Resultados já herda o recuo do .rv-main: sem recuo duplicado da home */
+@media (min-width: 900px) { .rv-main .ga-head.ga-head--in { padding-left: 0; } }
