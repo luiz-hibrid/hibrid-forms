@@ -31,14 +31,16 @@ export default async function WorkspaceDetail({
   return (
     <main className="min-h-screen bg-[var(--bg)]">
       <AdminHeader />
-      <div className="mx-auto max-w-[900px] px-5 py-8 sm:px-8">
-        <Link href="/admin/workspaces" className="text-sm text-[var(--text2)] hover:text-[var(--text)]">
-          ← Clientes
-        </Link>
-        <h1 className="mt-2 text-[1.5rem] font-black tracking-tight text-[var(--text)]">
-          {ws.name}
-        </h1>
-        <p className="mono mt-1 text-[11px] text-[var(--text3)]">/{ws.slug}</p>
+      <div className="gl-head">
+        <div>
+          <Link href="/admin/workspaces" className="gl-pill-btn mb-3 !h-8 !px-3 text-xs">
+            ← Clientes
+          </Link>
+          <h1>{ws.name}</h1>
+        </div>
+        <p className="mono pb-2 text-[11px] text-[var(--text3)]">/{ws.slug}</p>
+      </div>
+      <div className="mx-auto max-w-[1240px] px-4 py-7 sm:px-8">
 
         <div className="mt-6 grid gap-5">
           <UsersManager workspaceId={ws.id} users={users.map((u) => ({ id: u.id, email: u.email, active: u.active }))} />

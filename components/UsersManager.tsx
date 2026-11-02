@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface U {
@@ -65,8 +65,10 @@ export function UsersManager({
     if (res.ok) router.refresh();
   }
 
-  const loginUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/admin/login` : "/admin/login";
+  // origem só no cliente (evita erro de hidratação: o servidor não conhece window)
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const loginUrl = `${origin}/admin/login`;
 
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">

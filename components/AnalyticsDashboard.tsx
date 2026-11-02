@@ -763,7 +763,7 @@ function TrendChart({ data }: { data: { label: string; n: number; day: string }[
         <path
           d={line}
           fill="none"
-          stroke="var(--dark)"
+          stroke="var(--text)"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"

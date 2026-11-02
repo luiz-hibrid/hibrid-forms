@@ -1016,7 +1016,7 @@ function StepPreview({
   }
   if (!step) {
     return (
-      <div className="px-8 py-24 text-center text-[var(--text2)]">
+      <div className="px-8 py-24 text-center text-[#6b7280]">
         Selecione um item para pré-visualizar.
       </div>
     );

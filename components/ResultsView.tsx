@@ -243,7 +243,7 @@ export function ResultsView({
         </>
       )}
       {tab === "responses" && (
-        <div className="-mx-5 sm:-mx-8">
+        <div>
           <Responses
             steps={tableSteps ?? steps}
             submissions={submissions}
@@ -638,8 +638,8 @@ function Responses({
   }
 
   return (
-    <div className="border-y border-[var(--border)] bg-[var(--card)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-8">
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-6">
         <div className="flex flex-nowrap items-center gap-2">
           <input
             value={q}

@@ -169,3 +169,79 @@
   @keyframes gl-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
   .gl-head, .gl-top { animation: gl-rise 0.6s var(--gl-ease) both; }
 }
+
+/* ============================================================
+   Modo escuro — mesmos tokens remapeados para vidro escuro.
+   Os componentes assumem botões "tinta" = bg var(--text) + texto branco;
+   no escuro o --text é claro, então o texto desses botões é invertido aqui.
+   ============================================================ */
+.gl-admin[data-theme="dark"] {
+  color-scheme: dark;
+  background: #0d110f;
+  --gl-glass: rgba(24, 28, 26, 0.55);
+  --gl-glass-2: rgba(255, 255, 255, 0.08);
+  --gl-solid: #1b201e;
+  --gl-rim: rgba(255, 255, 255, 0.14);
+  --gl-line: rgba(255, 255, 255, 0.1);
+  --gl-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 30px 60px -30px rgba(0, 0, 0, 0.65);
+  --gl-pop: 0 24px 60px -18px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+
+  --bg: rgba(255, 255, 255, 0.07);
+  --card: rgba(27, 32, 30, 0.66);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: #f2f4f0;
+  --text2: #c5cac3;
+  --text3: #98a09a;
+  --warning-ink: #f0cf5a;
+  --success: #8fe070;
+  --red: #ff8c6e;
+  --chart-grid: rgba(255, 255, 255, 0.08);
+}
+.gl-admin[data-theme="dark"] .gl-admin-bg {
+  background:
+    radial-gradient(55% 45% at 10% -5%, rgba(184, 245, 49, 0.15), transparent 70%),
+    radial-gradient(45% 40% at 100% 15%, rgba(90, 130, 255, 0.16), transparent 70%),
+    radial-gradient(70% 55% at 55% 115%, rgba(242, 125, 95, 0.13), transparent 70%),
+    linear-gradient(180deg, #0f1411, #0b0f0d);
+}
+/* botões/pílulas "tinta": fundo claro → texto escuro */
+.gl-admin[data-theme="dark"] [class*="bg-[var(--text)]"],
+.gl-admin[data-theme="dark"] .gl-tab[aria-current="page"] {
+  color: #13171a !important;
+}
+/* superfícies "pretas" (hero de estatísticas, badges) continuam escuras: ganham um aro para destacar do fundo */
+.gl-admin[data-theme="dark"] [class*="bg-[var(--dark)]"] { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); }
+.gl-admin[data-theme="dark"] .gl-tab[aria-current="page"] { background: var(--text); }
+/* botões em lima: texto sempre escuro (o --text é claro no tema escuro) */
+.gl-admin[data-theme="dark"] [class*="bg-[var(--accent)]"],
+.gl-admin[data-theme="dark"] [class*="bg-[var(--acc2)]"] { color: #13171a !important; }
+.gl-admin[data-theme="dark"] .gl-pill-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.gl-admin[data-theme="dark"] img[alt="hibrid"] { filter: brightness(0) invert(1); }
+.gl-admin[data-theme="dark"] input,
+.gl-admin[data-theme="dark"] select,
+.gl-admin[data-theme="dark"] textarea { color: var(--text); }
+.gl-admin[data-theme="dark"] ::placeholder { color: var(--text3); }
+.gl-admin[data-theme="dark"] [class*="bg-white"] { background-color: rgba(255, 255, 255, 0.1) !important; }
+.gl-admin[data-theme="dark"] [class*="hover:border-[#bbb]"]:hover { border-color: rgba(255, 255, 255, 0.35); }
+
+/* alternador de tema (canto inferior esquerdo) */
+.gl-theme {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 40;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--text);
+  background: var(--gl-glass-2);
+  border: 1px solid var(--gl-rim);
+  -webkit-backdrop-filter: var(--gl-blur);
+  backdrop-filter: var(--gl-blur);
+  box-shadow: var(--gl-shadow);
+  transition: transform 0.3s var(--gl-ease);
+}
+.gl-theme:hover { transform: translateY(-2px); }
+.gl-theme svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
