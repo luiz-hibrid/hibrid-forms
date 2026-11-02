@@ -12,7 +12,7 @@ export function LogoutButton() {
   return (
     <button
       onClick={logout}
-      className="gl-pill-btn"
+      className="ga-pill-btn"
     >
       Sair
     </button>

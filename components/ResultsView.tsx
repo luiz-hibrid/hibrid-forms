@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { PillTabs } from "@/components/PillTabs";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Field } from "@/lib/types";
@@ -199,17 +200,55 @@ export function ResultsView({
   const responses = ownCompletes.length;
   const exportSlugs = groupSlugs.length ? groupSlugs : [formSlug];
 
+  const qualified = ownCompletes.filter((s) => s.qualified).length;
+  const avgScore = ownCompletes.length
+    ? Math.round(ownCompletes.reduce((n, s) => n + (s.score || 0), 0) / ownCompletes.length)
+    : 0;
+  const sections = [
+    { id: "summary", label: "Resumo", icon: <IcoSummary /> },
+    { id: "responses", label: "Respostas", icon: <IcoTable /> },
+    { id: "map", label: "Mapa", icon: <IcoPin /> },
+    { id: "kanban", label: "Kanban", icon: <IcoColumns /> },
+    { id: "optimize", label: "Otimizar", icon: <IcoSpark /> },
+    { id: "log", label: "Envios", icon: <IcoLog /> },
+  ] as const;
+
   return (
-    <div className="w-full px-5 py-6 sm:px-8">
-      {/* Sub-nav */}
-      <div className="mb-6 inline-flex items-center gap-1 rounded-full bg-[var(--card)] p-1 shadow-[0_1px_2px_rgba(17,24,39,0.06)]">
-        <SubTab active={tab === "summary"} onClick={() => setTab("summary")} icon={<IcoSummary />}>Resumo</SubTab>
-        <SubTab active={tab === "responses"} onClick={() => setTab("responses")} icon={<IcoTable />}>Respostas</SubTab>
-        <SubTab active={tab === "map"} onClick={() => setTab("map")} icon={<IcoPin />}>Mapa</SubTab>
-        <SubTab active={tab === "kanban"} onClick={() => setTab("kanban")} icon={<IcoColumns />}>Kanban</SubTab>
-        <SubTab active={tab === "optimize"} onClick={() => setTab("optimize")} icon={<IcoSpark />}>Otimizar</SubTab>
-        <SubTab active={tab === "log"} onClick={() => { setLogStatus(undefined); setTab("log"); }} icon={<IcoLog />}>Envios</SubTab>
-      </div>
+    <div className="rv-main w-full px-5 pb-10 sm:px-8">
+      {/* Menu lateral (dock) */}
+      <nav className="ga-dock" aria-label="Seções de resultados">
+        {sections.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            className="ga-dock__btn"
+            data-active={tab === x.id}
+            aria-label={x.label}
+            aria-current={tab === x.id ? "page" : undefined}
+            onClick={() => {
+              if (x.id === "log") setLogStatus(undefined);
+              setTab(x.id);
+            }}
+          >
+            {x.icon}
+            <span className="ga-dock__tip">{x.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Título + estatísticas */}
+      <header className="ga-head ga-head--in">
+        <h1>
+          Resultados
+          <br />
+          <span style={{ fontWeight: 300 }}>{formName}</span>
+        </h1>
+        <div className="ga-stats">
+          <ResultStat label="Leads completos" value={responses} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 5.2a3.5 3.5 0 010 6.6M18 15c1.8.6 3 2.2 3.5 5" />
+          <ResultStat label="Qualificados" value={qualified} d="M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z" badge={responses ? `${Math.round((qualified / responses) * 100)}%` : undefined} />
+          <ResultStat label="Score médio" value={avgScore} d="M4 20h16M7 17v-5M12 17V7M17 17v-8" />
+        </div>
+      </header>
 
       {tab === "summary" && (
         <>
@@ -265,6 +304,25 @@ export function ResultsView({
           onRefresh={() => router.refresh()}
         />
       )}
+    </div>
+  );
+}
+
+function ResultStat({ label, value, d, badge }: { label: string; value: number; d: string; badge?: string }) {
+  return (
+    <div className="ga-stat">
+      <span className="ga-stat__ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d={d} />
+        </svg>
+      </span>
+      <div>
+        <div className="ga-stat__v">
+          {value}
+          {badge ? <span className="ga-badge-accent">{badge}</span> : null}
+        </div>
+        <div className="ga-stat__l">{label}</div>
+      </div>
     </div>
   );
 }
@@ -494,21 +552,13 @@ function LeadsRail({
     <div className="dash-in rounded-2xl border border-[var(--border)] bg-[var(--card)]">
       <header className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
         <span className="lbl">Respostas</span>
-        <div className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] p-0.5">
+        <PillTabs size="sm" className="!inline-flex" label="Filtro de respostas">
           {(["complete", "all"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`mono rounded-full px-2.5 py-1 text-[0.58rem] font-bold uppercase tracking-wider transition ${
-                filter === f
-                  ? "bg-[var(--dark)] text-white"
-                  : "text-[var(--text3)] hover:text-[var(--text)]"
-              }`}
-            >
+            <button key={f} onClick={() => setFilter(f)} className="ga-tab" data-active={filter === f}>
               {f === "complete" ? "Completas" : "Todas"}
             </button>
           ))}
-        </div>
+        </PillTabs>
       </header>
 
       <div className="max-h-[820px] overflow-y-auto">
@@ -591,7 +641,12 @@ function Responses({
   const [campaign, setCampaign] = useState("");
   const [variant, setVariant] = useState("");
   const [statusFilter, setStatusFilter] = useState<"complete" | "partial" | "all">("complete");
+  const [tier, setTier] = useState<"todos" | "quente" | "morno" | "frio">("todos");
+  // "compact" = tabela resumida do novo padrão; "full" = todas as colunas de perguntas
+  const [mode, setMode] = useState<"compact" | "full">("compact");
   const [viewId, setViewId] = useState<string | null>(null);
+  // a escala do score vem das ponderações de cada formulário: a barra é relativa ao maior valor
+  const maxScore = Math.max(1, ...submissions.map((x) => x.score || 0));
   const viewed = submissions.find((s) => s.id === viewId) ?? null;
 
   const partialCount = useMemo(
@@ -613,6 +668,7 @@ function Responses({
     return submissions.filter((s) => {
       if (statusFilter === "complete" && s.status !== "complete") return false;
       if (statusFilter === "partial" && s.status === "complete") return false;
+      if (tier !== "todos" && s.tier !== tier) return false;
       if (campaign && s.tracking?.utm_campaign !== campaign) return false;
       if (variant && s.form_slug !== variant) return false;
       if (!t) return true;
@@ -628,7 +684,7 @@ function Responses({
         .toLowerCase();
       return blob.includes(t);
     });
-  }, [q, campaign, variant, statusFilter, submissions]);
+  }, [q, campaign, variant, statusFilter, tier, submissions]);
 
   async function remove(id: string) {
     if (!confirm("Excluir esta resposta?")) return;
@@ -640,7 +696,13 @@ function Responses({
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-3 sm:px-6">
-        <div className="flex flex-nowrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {(["todos", "quente", "morno", "frio"] as const).map((t) => (
+            <button key={t} type="button" className="ga-chip" aria-pressed={tier === t} onClick={() => setTier(t)}>
+              {t !== "todos" && <i className={`ga-dot ga-dot--${t}`} />}
+              {t === "todos" ? "Todos" : t[0].toUpperCase() + t.slice(1)}
+            </button>
+          ))}
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -686,6 +748,10 @@ function Responses({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <PillTabs size="sm" className="!inline-flex" label="Modo da tabela">
+            <button type="button" className="ga-tab" data-active={mode === "compact"} onClick={() => setMode("compact")}>Resumo</button>
+            <button type="button" className="ga-tab" data-active={mode === "full"} onClick={() => setMode("full")}>Todas as colunas</button>
+          </PillTabs>
           <span className="mono text-[0.72rem] text-[var(--text3)]">{rows.length} respostas</span>
           <a
             href={`/api/admin/export?form=${exportSlugs.join(",")}`}
@@ -695,6 +761,96 @@ function Responses({
           </a>
         </div>
       </div>
+      {mode === "compact" && (
+        <div className="overflow-x-auto">
+          <table className="ga-table">
+            <thead>
+              <tr>
+                <th>Lead</th>
+                <th>Tier</th>
+                <th>Score</th>
+                <th className="ga-hide-md">Origem</th>
+                <th className="ga-hide-md">Local</th>
+                <th>Google Ads</th>
+                <th className="r">Quando</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-12 text-center text-[var(--text2)]">
+                    Nenhuma resposta ainda. Aparecem aqui assim que alguém responder.
+                  </td>
+                </tr>
+              )}
+              {rows.map((r) => (
+                <tr key={r.id} onClick={() => setViewId(r.id)}>
+                  <td>
+                    <div className="ga-person">
+                      <span className="ga-feed__av">{(r.nome || r.email || "?").trim()[0]?.toUpperCase() ?? "?"}</span>
+                      <span>
+                        <b>{r.nome || r.email || "Lead sem nome"}</b>
+                        <small>
+                          {r.email || r.telefone || "—"}
+                          {variantLabels && r.form_slug && variantLabels[r.form_slug] ? ` · ${variantLabels[r.form_slug]}` : ""}
+                        </small>
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    {r.status === "complete" ? (
+                      <TierBadge tier={r.tier} />
+                    ) : (
+                      <span className="mono rounded-full bg-[var(--border)] px-2 py-1 text-[0.55rem] font-bold uppercase text-[var(--text3)]">Parcial</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="ga-score">
+                      <b>{r.score}</b>
+                      <span className="ga-meter">
+                        <i style={{ transform: `scaleX(${Math.max(0.04, Math.min(1, r.score / maxScore))})` }} />
+                      </span>
+                    </div>
+                  </td>
+                  <td className="ga-hide-md">
+                    <span>{r.tracking?.utm_source || (r.tracking?.gclid ? "google/ads" : "—")}</span>
+                    {r.tracking?.utm_campaign ? <small className="ga-sub">{r.tracking.utm_campaign}</small> : null}
+                  </td>
+                  <td className="ga-hide-md">
+                    {r.geo_city ? (
+                      <>
+                        {r.geo_city} <span className="mono text-[0.65rem] text-[var(--text3)]">· {r.geo_uf}</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    <GadsBadge status={r.gads_status} error={r.gads_error} qualified={r.qualified} />
+                  </td>
+                  <td className="r ga-when" title={fmtDate(r.created_at)}>
+                    {relativeTime(r.created_at)}
+                  </td>
+                  <td className="r">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        remove(r.id);
+                      }}
+                      className="text-[var(--text3)] hover:text-[var(--red)]"
+                      aria-label="Excluir"
+                    >
+                      ✕
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {mode === "full" && (
       <div className="overflow-x-auto">
         <table className="w-full text-sm [&_td]:border-r [&_td]:border-[var(--border)] [&_th]:border-r [&_th]:border-[var(--border)] [&_td:last-child]:border-r-0 [&_th:last-child]:border-r-0">
 
@@ -808,6 +964,7 @@ function Responses({
           </tbody>
         </table>
       </div>
+      )}
 
       {viewed && (
         <LeadQuickView submission={viewed} steps={steps} onClose={() => setViewId(null)} />
@@ -955,7 +1112,15 @@ function Kanban({
   const [cards, setCards] = useState<Submission[]>(submissions);
   const [dragId, setDragId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [kq, setKq] = useState("");
+  const [ktier, setKtier] = useState<"todos" | "quente" | "morno" | "frio">("todos");
+  const [overCol, setOverCol] = useState<string | null>(null);
   const selected = cards.find((c) => c.id === selectedId) ?? null;
+  // busca e filtro de tier só escondem cartões (não alteram os dados)
+  const matches = (c: Submission) =>
+    (ktier === "todos" || c.tier === ktier) &&
+    (!kq.trim() ||
+      [c.nome, c.email, c.telefone, ...(c.labels ?? [])].join(" ").toLowerCase().includes(kq.trim().toLowerCase()));
 
   async function updateLabels(id: string, labels: string[]) {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, labels } : c)));
@@ -1039,35 +1204,66 @@ function Kanban({
     saveColumns(columns.filter((c) => c.id !== id));
   }
 
+  const TONES = ["sky", "lime", "coral", "ink"] as const;
+  const star = (filled: boolean) => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" />
+    </svg>
+  );
+
   return (
-    <div>
-      <div className="mb-3 flex items-center justify-between">
-        <span className="lbl">Kanban</span>
-        <div className="flex items-center gap-2">
-          <RoundBtn label="Atualizar" onClick={onRefresh}>↻</RoundBtn>
-          <RoundBtn label="Filtrar" onClick={() => {}}>⧩</RoundBtn>
-          <RoundBtn label="Adicionar coluna" onClick={addColumn}>＋</RoundBtn>
-        </div>
+    <div className="kb">
+      <div className="kb-toolbar">
+        <label className="kb-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+          <input value={kq} onChange={(e) => setKq(e.target.value)} placeholder="Buscar leads…" aria-label="Buscar leads" />
+        </label>
+        {(["todos", "quente", "morno", "frio"] as const).map((t) => (
+          <button key={t} type="button" className="ga-chip" aria-pressed={ktier === t} onClick={() => setKtier(t)}>
+            {t !== "todos" && <i className={`ga-dot ga-dot--${t}`} />}
+            {t === "todos" ? "Todos" : t[0].toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+        <span className="kb-toolbar__spacer" />
+        <button type="button" className="kb-round" onClick={onRefresh} aria-label="Atualizar" title="Atualizar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19.5 12a7.5 7.5 0 11-2.2-5.3M19.5 4.5v4h-4" />
+          </svg>
+        </button>
+        <button type="button" className="kb-new" onClick={addColumn}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          Nova coluna
+        </button>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {columns.map((col) => {
+      <div className="kb-cols">
+        {columns.map((col, ci) => {
           const colCards = cards.filter((c) => colOf(c) === col.id);
+          const shown = colCards.filter(matches);
+          const tone = TONES[ci % TONES.length];
           return (
-            <div
+            <section
               key={col.id}
-              onDragOver={(e) => e.preventDefault()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (overCol !== col.id) setOverCol(col.id);
+              }}
+              onDragLeave={() => setOverCol((o) => (o === col.id ? null : o))}
               onDrop={() => {
                 if (dragId) moveCard(dragId, col.id);
                 setDragId(null);
+                setOverCol(null);
               }}
-              className={`flex max-h-[75vh] w-[310px] shrink-0 flex-col rounded-2xl border bg-[var(--card)] p-3 ${
-                col.qualified
-                  ? "border-[var(--acc2)] ring-1 ring-[var(--acc2)]"
-                  : "border-[var(--border)]"
-              }`}
+              className={`kb-col${col.qualified ? " is-qualified" : ""}${overCol === col.id ? " is-over" : ""}`}
+              aria-label={col.name}
             >
-              <div className="mb-3 flex items-center gap-1.5">
+              <header className="kb-col__head">
+                <span className={`kb-col__dot kb-t--${tone}`} aria-hidden="true" />
                 <input
                   value={col.name}
                   onChange={(e) => setColumnName(col.id, e.target.value)}
@@ -1075,16 +1271,14 @@ function Kanban({
                   onKeyDown={(e) => {
                     if (e.key === "Enter") e.currentTarget.blur();
                   }}
-                  className="mono min-w-0 flex-1 rounded bg-transparent px-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--text2)] outline-none hover:bg-[var(--bg)] focus:bg-[var(--bg)]"
+                  className="kb-col__name"
                   title="Clique para renomear"
+                  aria-label="Nome da coluna"
                 />
+                <span className="kb-col__count">{kq || ktier !== "todos" ? `${shown.length}/${colCards.length}` : colCards.length}</span>
                 <button
                   onClick={() => toggleQualified(col.id)}
-                  className={`shrink-0 transition ${
-                    col.qualified
-                      ? "text-[var(--success)]"
-                      : "text-[var(--text3)] hover:text-[var(--text2)]"
-                  }`}
+                  className={`kb-col__btn${col.qualified ? " is-on" : ""}`}
                   aria-label="Marcar coluna como qualificada"
                   title={
                     col.qualified
@@ -1092,93 +1286,72 @@ function Kanban({
                       : "Marcar como coluna de qualificados (dispara conversão ao receber um lead)"
                   }
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill={col.qualified ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" />
-                  </svg>
+                  {star(!!col.qualified)}
                 </button>
-                <span className="inline-flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-md bg-[var(--text)] px-1.5 text-xs font-bold text-white">
-                  {colCards.length}
-                </span>
                 {columns.length > 1 && (
-                  <button
-                    onClick={() => removeColumn(col.id)}
-                    className="shrink-0 text-[var(--text3)] transition hover:text-[var(--red)]"
-                    aria-label="Excluir coluna"
-                    title="Excluir coluna"
-                  >
+                  <button onClick={() => removeColumn(col.id)} className="kb-col__btn kb-col__btn--del" aria-label="Excluir coluna" title="Excluir coluna">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2m2 0v14a1 1 0 01-1 1H7a1 1 0 01-1-1V6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </button>
                 )}
-              </div>
-              {col.qualified && (
-                <div className="mb-2 flex items-center gap-1 rounded-md bg-[var(--success-dim)] px-2 py-1 text-[0.6rem] font-medium text-[var(--success)]">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.8.8-5 4.7 1.3 6.7L12 17.8 5.9 20.5 7.2 13.8l-5-4.7 6.8-.8z" /></svg>
-                  Dispara conversão de qualificado
-                </div>
-              )}
-              <div className="flex flex-1 flex-col gap-2 overflow-y-auto">
-                {colCards.length === 0 && (
-                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl bg-[var(--bg)] py-16 text-center">
-                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className="text-[var(--text3)]">
+              </header>
+              {col.qualified && <div className="kb-col__note">★ Dispara conversão de qualificado</div>}
+
+              <div className="kb-col__body">
+                {shown.length === 0 && (
+                  <div className="kb-empty">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                       <rect x="3" y="4" width="5" height="16" rx="1.2" />
                       <rect x="9.5" y="4" width="5" height="16" rx="1.2" />
                       <rect x="16" y="4" width="5" height="16" rx="1.2" />
                     </svg>
-                    <span className="mt-2 text-xs text-[var(--text3)]">Sem leads nesta etapa</span>
+                    <span>{colCards.length ? "Nenhum lead com esse filtro" : "Sem leads nesta etapa"}</span>
                   </div>
                 )}
-                {colCards.map((c) => (
-                  <div
+                {shown.map((c) => (
+                  <article
                     key={c.id}
                     draggable
                     onDragStart={() => setDragId(c.id)}
-                    onDragEnd={() => setDragId(null)}
+                    onDragEnd={() => {
+                      setDragId(null);
+                      setOverCol(null);
+                    }}
                     onClick={() => setSelectedId(c.id)}
-                    className={`cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition hover:border-[#ccc] hover:shadow-md ${
-                      dragId === c.id ? "opacity-40" : ""
-                    }`}
+                    title={`#${c.id.slice(0, 10)}`}
+                    className={`kb-card kb-t--${tone}${dragId === c.id ? " is-drag" : ""}`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="mono truncate text-[0.6rem] text-[var(--text3)]">
-                        #{c.id.slice(0, 10)}
-                      </span>
-                      <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
-                        {shortDate(c.created_at)}
-                      </span>
+                    <div className="kb-card__top">
+                      <span>Enviado {shortDate(c.created_at)}</span>
+                      <span className="kb-card__rel">{relativeTime(c.created_at)}</span>
                     </div>
-                    <div className="mt-1 truncate font-bold text-[var(--text)]">{c.nome || "Lead"}</div>
-                    {c.telefone && (
-                      <div className="truncate text-sm text-[var(--text2)]">{c.telefone}</div>
-                    )}
-                    {c.email && (
-                      <div className="truncate text-sm text-[var(--text2)]">{c.email}</div>
-                    )}
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {c.status === "complete" && (
-                        <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
-                          🎉 Completa
-                        </span>
-                      )}
-                      <TierBadge tier={c.tier} />
-                      <span className="mono text-[0.6rem] text-[var(--text3)]">
-                        {relativeTime(c.created_at)}
-                      </span>
-                    </div>
+                    <h3 className="kb-card__title">{c.nome || "Lead"}</h3>
+                    {c.email && <p className="kb-card__sub">{c.email}</p>}
+                    {c.telefone && <p className="kb-card__sub">{c.telefone}</p>}
                     {c.labels?.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
+                      <div className="kb-card__labels">
                         {c.labels.map((l) => (
-                          <span key={l} className="mono rounded bg-[var(--bg)] px-1.5 py-0.5 text-[0.55rem] text-[var(--text2)]">
-                            {l}
-                          </span>
+                          <span key={l}>{l}</span>
                         ))}
                       </div>
                     )}
-                  </div>
+                    <div className="kb-card__foot">
+                      <div className="kb-card__meta">
+                        {c.tier && (
+                          <span className="kb-pill">
+                            <i className={`ga-dot ga-dot--${c.tier}`} />
+                            {c.tier[0].toUpperCase() + c.tier.slice(1)} · {c.score}
+                          </span>
+                        )}
+                        {c.status === "complete" ? <span className="kb-pill">🎉 Completa</span> : <span className="kb-pill">Parcial</span>}
+                      </div>
+                      <span className="kb-av">{(c.nome || c.email || "?").trim()[0]?.toUpperCase() ?? "?"}</span>
+                    </div>
+                  </article>
                 ))}
               </div>
-            </div>
+            </section>
           );
         })}
       </div>
@@ -1197,7 +1370,7 @@ function Kanban({
   );
 }
 
-// ---------------------------------------------------------------- Modal do lead
+// ---------------------------------------------------------------- Detalhes do lead (gaveta lateral)
 function LeadModal({
   submission,
   steps,
@@ -1214,7 +1387,26 @@ function LeadModal({
   onLabels: (labels: string[]) => void;
 }) {
   const [labelInput, setLabelInput] = useState("");
+  const [closing, setClosing] = useState(false);
   const answered = steps.filter((s) => hasAnswer(submission.answers?.[s.id]));
+  const TONES = ["sky", "lime", "coral", "ink"] as const;
+  const stageId = columns.some((c) => c.id === submission.stage) ? submission.stage : columns[0]?.id;
+  const stageIdx = Math.max(0, columns.findIndex((c) => c.id === stageId));
+  const stage = columns[stageIdx];
+  const tone = TONES[stageIdx % TONES.length];
+
+  // fecha com animação (a gaveta desliza para fora antes de desmontar)
+  function close() {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(onClose, 220);
+  }
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [closing]);
 
   function addLabel() {
     const v = labelInput.trim();
@@ -1223,133 +1415,168 @@ function LeadModal({
     setLabelInput("");
   }
 
+  const wa = (() => {
+    if (!submission.telefone) return null;
+    const d = String(submission.telefone).replace(/\D/g, "");
+    const num = d.length <= 11 ? `55${d}` : d;
+    const first = (submission.nome || "").trim().split(" ")[0] || "";
+    const msg = encodeURIComponent(`Olá${first ? ` ${first}` : ""}! Recebi seu contato pelo formulário da Hibrid.`);
+    return `https://wa.me/${num}?text=${msg}`;
+  })();
+
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="flex max-h-[85vh] w-full max-w-[1000px] flex-col overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+    <div className={`ld-overlay${closing ? " is-closing" : ""}`} onClick={close}>
+      <aside
+        className="ld-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Lead ${submission.nome || ""}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-3">
-          <span className="mono text-[0.62rem] uppercase tracking-wider text-[var(--text2)]">
-            Detalhes da resposta · #{submission.id.slice(0, 12).toUpperCase()}
+        <div className="ld-top">
+          <span className="ld-kicker">
+            Lead · {submission.email || submission.telefone || `#${submission.id.slice(0, 8)}`}
           </span>
-          <button onClick={onClose} className="text-[var(--text3)] hover:text-[var(--text)]">✕</button>
+          <button type="button" className="ld-close" onClick={close} aria-label="Fechar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
         </div>
 
-        <div className="grid flex-1 gap-5 overflow-y-auto p-5 md:grid-cols-[1fr_300px]">
-          {/* Campos */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="lbl">Campos da resposta</span>
-              <span className="mono rounded-full bg-[var(--bg)] px-2 py-0.5 text-[0.62rem] text-[var(--text2)]">
-                {steps.length}
-              </span>
+        {/* cartão de cabeçalho — cor da etapa atual */}
+        <div className={`ld-head kb-t--${tone}`}>
+          <div className="ld-head__row">
+            <span>Enviado {shortDate(submission.created_at)}</span>
+            <span className="ld-stage-pill">
+              <i className={`kb-col__dot kb-t--${tone}`} />
+              {stage?.name}
+            </span>
+          </div>
+          <h2 className="ld-head__title">{submission.nome || "Lead sem nome"}</h2>
+          <p className="ld-head__sub">{submission.email || "—"}</p>
+          <div className="ld-head__foot">
+            <div>
+              <b className="ld-head__score">{submission.score}</b>
+              <small>score</small>
             </div>
-            <div className="divide-y divide-[var(--border)]">
-              {steps.map((s, i) => (
-                <div key={s.id} className="flex items-start gap-3 py-3">
-                  <NumberedIcon type={s.type} n={i + 1} />
-                  <div className="min-w-0">
-                    <div className="font-medium text-[var(--text)]">{s.title}</div>
-                    <div className="mt-0.5 text-[var(--text2)]">
-                      {answerText(s, submission.answers?.[s.id])}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <div className="flex items-center gap-2 py-3">
-                <span className="mono rounded bg-[var(--accent-dim)] px-2 py-1 text-[0.62rem] font-bold text-[var(--accent-ink)]">
-                  # score
-                </span>
-                <span className="text-[var(--text2)]">{submission.score}</span>
-                <TierBadge tier={submission.tier} />
-              </div>
+            <div className="ld-head__badges">
+              <TierBadge tier={submission.tier} />
+              <span className="ld-av">{(submission.nome || submission.email || "?").trim()[0]?.toUpperCase() ?? "?"}</span>
             </div>
           </div>
+        </div>
 
-          {/* Propriedades + Labels */}
-          <div className="space-y-4">
-            <div className="rounded-xl border border-[var(--border)] p-4">
-              <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
-                Propriedades
-              </div>
-              <Row label="Status">
-                <span className="mono rounded-full bg-[var(--success-dim)] px-2 py-0.5 text-[0.55rem] font-bold uppercase text-[var(--success)]">
-                  {submission.status === "complete" ? "Completa" : "Parcial"}
-                </span>
-              </Row>
-              <Row label="Estágio">
-                <select
-                  value={columns.some((c) => c.id === submission.stage) ? submission.stage : columns[0]?.id}
-                  onChange={(e) => onStage(e.target.value)}
-                  className="rounded-md border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-sm"
+        {/* estágios cadastrados no Kanban */}
+        <nav className="ld-steps" aria-label="Estágio do lead">
+          <ol>
+            {columns.map((c, i) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className={`ld-step${i <= stageIdx ? " is-on" : ""}${i === stageIdx ? " is-now" : ""}`}
+                  aria-current={i === stageIdx ? "step" : undefined}
+                  title={c.qualified ? `${c.name} — dispara conversão de qualificado` : c.name}
+                  onClick={() => onStage(c.id)}
                 >
-                  {columns.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </Row>
-              <Row label="Enviado">
-                <span className="text-sm text-[var(--text2)]">{relativeTime(submission.created_at)}</span>
-              </Row>
-              <Row label="Atualizado">
-                <span className="text-sm text-[var(--text2)]">{relativeTime(submission.updated_at)}</span>
-              </Row>
-              <Row label="Google Ads">
-                <GadsBadge
-                  status={submission.gads_status}
-                  error={submission.gads_error}
-                  qualified={submission.qualified}
-                />
-              </Row>
-              {submission.gads_status === "failed" && submission.gads_error && (
-                <div className="mt-1 rounded-md bg-[var(--danger-dim)] px-2 py-1.5 text-[0.7rem] text-[var(--red)]">
-                  {submission.gads_error}
-                </div>
-              )}
-              {submission.gads_status === "skipped" && submission.gads_error && (
-                <div className="mt-1 text-[0.7rem] text-[var(--text3)]">
-                  Motivo: {submission.gads_error}
-                </div>
-              )}
-            </div>
+                  {c.qualified && <span aria-hidden="true">★ </span>}
+                  {c.name}
+                </button>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-            <div className="rounded-xl border border-[var(--border)] p-4">
-              <div className="mono mb-3 text-[0.6rem] uppercase tracking-wider text-[var(--text3)]">
-                Labels
+        <section className="ld-card">
+          <div className="ld-card__title">Propriedades</div>
+          <dl className="ld-props">
+            <div>
+              <dt>Status</dt>
+              <dd>{submission.status === "complete" ? "Completa" : "Parcial"}</dd>
+            </div>
+            <div>
+              <dt>Enviado</dt>
+              <dd>{relativeTime(submission.created_at)}</dd>
+            </div>
+            <div>
+              <dt>Atualizado</dt>
+              <dd>{relativeTime(submission.updated_at)}</dd>
+            </div>
+            <div>
+              <dt>Google Ads</dt>
+              <dd>
+                <GadsBadge status={submission.gads_status} error={submission.gads_error} qualified={submission.qualified} />
+              </dd>
+            </div>
+          </dl>
+          {submission.gads_status === "failed" && submission.gads_error && (
+            <div className="mt-2 rounded-lg bg-[var(--danger-dim)] px-3 py-2 text-[0.72rem] text-[var(--red)]">{submission.gads_error}</div>
+          )}
+          {submission.gads_status === "skipped" && submission.gads_error && (
+            <div className="mt-2 text-[0.72rem] text-[var(--text3)]">Motivo: {submission.gads_error}</div>
+          )}
+        </section>
+
+        <section className="ld-card">
+          <div className="ld-card__title">Labels</div>
+          <input
+            value={labelInput}
+            onChange={(e) => setLabelInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addLabel();
+              }
+            }}
+            placeholder="Digite e pressione Enter"
+            className="ld-input"
+          />
+          <div className="mt-3 flex flex-wrap gap-2">
+            {submission.labels.length === 0 && <span className="text-sm text-[var(--text3)]">Nenhum ainda</span>}
+            {submission.labels.map((l) => (
+              <span key={l} className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] px-2.5 py-1 text-xs text-[var(--text2)]">
+                {l}
+                <button onClick={() => onLabels(submission.labels.filter((x) => x !== l))} className="text-[var(--text3)] hover:text-[var(--red)]" aria-label={`Remover ${l}`}>
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="ld-card">
+          <div className="ld-card__title">
+            Campos da resposta <span className="ld-count">{answered.length}/{steps.length}</span>
+          </div>
+          <div className="divide-y divide-[var(--border)]">
+            {steps.map((s, i) => (
+              <div key={s.id} className="flex items-start gap-3 py-3">
+                <NumberedIcon type={s.type} n={i + 1} />
+                <div className="min-w-0">
+                  <div className="text-[0.85rem] font-medium text-[var(--text)]">{s.title}</div>
+                  <div className="mt-0.5 break-words text-[0.85rem] text-[var(--text2)]">{answerText(s, submission.answers?.[s.id])}</div>
+                </div>
               </div>
-              <input
-                value={labelInput}
-                onChange={(e) => setLabelInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addLabel();
-                  }
-                }}
-                placeholder="Digite e pressione Enter"
-                className="w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm outline-none focus:border-[var(--acc2)]"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {submission.labels.length === 0 && (
-                  <span className="text-sm text-[var(--text3)]">Nenhum ainda</span>
-                )}
-                {submission.labels.map((l) => (
-                  <span key={l} className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] px-2.5 py-1 text-xs text-[var(--text2)]">
-                    {l}
-                    <button
-                      onClick={() => onLabels(submission.labels.filter((x) => x !== l))}
-                      className="text-[var(--text3)] hover:text-[var(--red)]"
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
+            ))}
+            <div className="flex items-center gap-2 py-3">
+              <span className="mono rounded bg-[var(--accent-dim)] px-2 py-1 text-[0.62rem] font-bold text-[var(--accent-ink)]"># score</span>
+              <span className="text-[var(--text2)]">{submission.score}</span>
+              <TierBadge tier={submission.tier} />
             </div>
           </div>
+        </section>
+
+        <div className="ld-actions">
+          {wa && (
+            <a href={wa} target="_blank" rel="noopener noreferrer" className="ld-btn ld-btn--accent">
+              WhatsApp
+            </a>
+          )}
+          <button type="button" className="ld-btn" onClick={close}>
+            Fechar
+          </button>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
@@ -1377,29 +1604,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 // ---------------------------------------------------------------- helpers UI
-function SubTab({
-  active,
-  onClick,
-  icon,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
-        active ? "bg-[var(--text)] text-white" : "text-[var(--text2)] hover:text-[var(--text)]"
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
 
 function IcoSummary() {
   return (

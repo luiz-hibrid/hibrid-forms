@@ -225,8 +225,7 @@ export function AnalyticsDashboard({
       <div className="min-w-0 flex-1">
         {/* KPI band */}
         <div
-          className="grid grid-cols-2 gap-3 rounded-2xl p-4 text-white sm:grid-cols-3 lg:grid-cols-6 sm:gap-4 sm:p-6"
-          style={{ background: "var(--dark)" }}
+          className="ga-kpis dash-in grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 sm:grid-cols-3 lg:grid-cols-6 sm:gap-4 sm:p-6"
         >
           <Kpi n={views} label="Visualizações" />
           <Kpi n={starts} label="Iniciaram" />
@@ -393,13 +392,10 @@ const DEVICE_PT: Record<string, string> = {
 function Kpi({ n, label, accent }: { n: React.ReactNode; label: string; accent?: boolean }) {
   return (
     <div className="text-center">
-      <div
-        className="text-[1.45rem] font-black leading-none tabular-nums sm:text-[1.8rem]"
-        style={accent ? { color: "var(--accent)" } : undefined}
-      >
-        {n}
+      <div className="text-[1.45rem] font-black leading-none tabular-nums text-[var(--text)] sm:text-[1.8rem]">
+        {accent ? <span className="ga-badge-accent !text-[inherit] !text-base">{n}</span> : n}
       </div>
-      <div className="mt-1.5 text-[0.66rem] opacity-80 sm:text-[0.7rem]">{label}</div>
+      <div className="mt-1.5 text-[0.66rem] text-[var(--text2)] sm:text-[0.7rem]">{label}</div>
     </div>
   );
 }

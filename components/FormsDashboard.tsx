@@ -3,6 +3,8 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PillTabs } from "@/components/PillTabs";
+import { TierBadge } from "@/components/TierBadge";
 import type { FormListItem, FormPreview } from "@/lib/forms-db";
 
 type SortKey = "recent" | "name" | "responses";
@@ -84,36 +86,19 @@ export function FormsDashboard({
 
   return (
     <>
-    <div className="gl-head">
+    <div className="ga-head">
       <h1>
         Meus
         <br />
         Formulários
       </h1>
-      <div className="gl-stats">
+      <div className="ga-stats">
         <HeadStat label="Formulários" value={forms.length} d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />
         <HeadStat label="Publicados" value={published} d="M5 12.5l4.5 4.5L19 7.5" />
         <HeadStat label="Respostas" value={totalResponses} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 5.2a3.5 3.5 0 010 6.6M18 15c1.8.6 3 2.2 3.5 5" />
       </div>
     </div>
-    <div className="mx-auto flex max-w-[1240px] gap-6 px-4 py-7 sm:px-8">
-      {/* Sidebar de pastas */}
-      <aside className="hidden w-[190px] shrink-0 md:block">
-        <div className="lbl mb-3">Pastas</div>
-        <div className="grid gap-1">
-          <div className="rounded-lg bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--text)] shadow-[0_1px_2px_rgba(17,24,39,0.06)]">
-            Todos os formulários
-          </div>
-          <button
-            disabled
-            title="Em breve"
-            className="mt-2 rounded-lg border border-dashed border-[var(--border)] px-3 py-2 text-sm text-[var(--text3)]"
-          >
-            + Nova pasta
-          </button>
-        </div>
-      </aside>
-
+    <div className="ga-cols mx-auto max-w-[1240px] px-4 py-7 sm:px-8">
       {/* Conteúdo */}
       <div className="min-w-0 flex-1">
         {/* Toolbar */}
@@ -143,7 +128,7 @@ export function FormsDashboard({
             <option value="responses">Mais respostas</option>
           </select>
 
-          <div className="flex items-center rounded-full border border-[var(--border)] bg-[var(--card)] p-1">
+          <PillTabs size="sm" label="Visualização">
             <ViewBtn active={view === "list"} onClick={() => setView("list")} label="Lista">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
@@ -157,7 +142,7 @@ export function FormsDashboard({
                 <rect x="14" y="14" width="7" height="7" rx="1" />
               </svg>
             </ViewBtn>
-          </div>
+          </PillTabs>
 
           {canManage && (
             <button
@@ -188,7 +173,7 @@ export function FormsDashboard({
 
         {/* Grade */}
         {view === "grid" && filtered.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div key="grid" className="ga-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((f) => (
               <div
                 key={f.id}
@@ -240,16 +225,16 @@ export function FormsDashboard({
 
         {/* Lista */}
         {view === "list" && filtered.length > 0 && (
-          <div className="grid gap-3">
+          <div key="list" className="ga-stagger grid gap-3">
             {filtered.map((f) => (
               <div
                 key={f.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] px-5 py-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 pr-5"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <Link
                     href={`/admin/forms/${f.id}/respostas`}
-                    className="h-11 w-14 shrink-0 overflow-hidden rounded-lg"
+                    className="h-[68px] w-[104px] shrink-0 overflow-hidden rounded-xl"
                   >
                     <FormThumb preview={f.preview} compact />
                   </Link>
@@ -282,9 +267,9 @@ export function FormsDashboard({
           </div>
         )}
 
-        {/* Últimos leads */}
-        <RecentLeads leads={recentLeads} />
       </div>
+      {/* Últimos leads (coluna lateral) */}
+      <RecentLeads leads={recentLeads} />
     </div>
     </>
   );
@@ -292,15 +277,15 @@ export function FormsDashboard({
 
 function HeadStat({ label, value, d }: { label: string; value: number; d: string }) {
   return (
-    <div className="gl-stat">
-      <span className="gl-stat__ico">
+    <div className="ga-stat">
+      <span className="ga-stat__ico">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d={d} />
         </svg>
       </span>
       <div>
-        <div className="gl-stat__v">{value}</div>
-        <div className="gl-stat__l">{label}</div>
+        <div className="ga-stat__v">{value}</div>
+        <div className="ga-stat__l">{label}</div>
       </div>
     </div>
   );
@@ -315,54 +300,34 @@ function RecentLeads({ leads }: { leads: RecentLead[] }) {
   if (leads.length === 0) return null;
 
   return (
-    <div className="mt-10">
+    <aside className="ga-side rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
       <div className="mb-3 flex items-center justify-between">
-        <span className="lbl">Últimos leads</span>
-        <span className="mono text-[0.62rem] text-[var(--text3)]">{leads.length}</span>
+        <h2 className="text-[15px] font-semibold text-[var(--text)]">Últimos leads</h2>
+        <span className="text-xs text-[var(--text2)]">{leads.length} recentes</span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="ga-feed">
         {leads.map((l) => (
-          <Link
-            key={l.id}
-            href={`/admin/${l.id}`}
-            className="flex items-start gap-2.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3.5 py-3 transition hover:border-[#bbb]"
-          >
-            <span
-              className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[0.75rem] font-bold text-white ${
-                l.qualified ? "bg-[var(--success)]" : "bg-[var(--text2)]"
-              }`}
-            >
-              {initial(l)}
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate text-sm font-medium text-[var(--text)]">
-                  {l.nome || l.email || "Lead"}
+          <li key={l.id}>
+            <Link href={`/admin/${l.id}`} className="ga-feed__row">
+              <span className="ga-feed__av">{initial(l)}</span>
+              <span className="ga-feed__who">
+                <b>{l.nome || l.email || "Lead"}</b>
+                <small>
+                  {l.form_name || l.form_slug} · {timeAgo(l.created_at)}
+                </small>
+              </span>
+              {l.status !== "complete" ? (
+                <span className="mono rounded-full bg-[var(--border)] px-2 py-1 text-[0.55rem] font-bold uppercase text-[var(--text3)]">
+                  Parcial
                 </span>
-                <span className="mono shrink-0 text-[0.6rem] text-[var(--text3)]">
-                  {timeAgo(l.created_at)}
-                </span>
-              </div>
-              <div className="truncate text-[0.72rem] text-[var(--text3)]">
-                {l.form_name || l.form_slug}
-              </div>
-              <div className="mt-1.5 flex items-center gap-1.5">
-                {l.status !== "complete" && (
-                  <span className="mono rounded-full bg-[var(--border)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--text3)]">
-                    Parcial
-                  </span>
-                )}
-                {l.qualified && (
-                  <span className="mono rounded-full bg-[var(--success-dim)] px-1.5 py-0.5 text-[0.5rem] font-bold uppercase text-[var(--success)]">
-                    Qualificado
-                  </span>
-                )}
-              </div>
-            </div>
-          </Link>
+              ) : (
+                <TierBadge tier={l.tier} />
+              )}
+            </Link>
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </aside>
   );
 }
 
@@ -484,7 +449,6 @@ function FormMenu({
                   <MenuItem icon={<IcoMove />} onClick={() => setMoving(true)} chevron>
                     Mover para workspace
                   </MenuItem>
-                  <MenuItem icon={<IcoFolder />} disabled>Mover para pasta</MenuItem>
                   <MenuItem icon={<IcoExport />} onClick={() => { close(); window.location.href = `/api/admin/export?form=${form.slug}`; }}>
                     Exportar
                   </MenuItem>
@@ -598,9 +562,6 @@ function IcoDuplicate() {
 function IcoMove() {
   return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M4 7h11l-3-3M20 17H9l3 3" /></svg>);
 }
-function IcoFolder() {
-  return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /></svg>);
-}
 function IcoExport() {
   return (<svg width={IK.w} height={IK.h} viewBox={IK.viewBox} fill={IK.fill} stroke={IK.stroke} strokeWidth={IK.strokeWidth} strokeLinecap={IK.strokeLinecap} strokeLinejoin={IK.strokeLinejoin}><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" /><path d="M12 3v13M7 8l5-5 5 5" /></svg>);
 }
@@ -686,9 +647,8 @@ function ViewBtn({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex h-8 w-8 items-center justify-center rounded-full transition ${
-        active ? "bg-[var(--text)] text-white" : "text-[var(--text3)] hover:text-[var(--text)]"
-      }`}
+      className="ga-tab !px-2.5"
+      data-active={active}
     >
       {children}
     </button>

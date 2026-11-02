@@ -36,11 +36,11 @@ export function WorkspacesManager({ workspaces }: { workspaces: WsItem[] }) {
   const users = workspaces.reduce((n, w) => n + w.users, 0);
   return (
     <>
-      <div className="gl-head">
+      <div className="ga-head">
         <h1>
           Clientes
         </h1>
-        <div className="gl-stats">
+        <div className="ga-stats">
           <HeadStat label="Workspaces" value={workspaces.length} d="M4 20V8l8-4 8 4v12M9 20v-6h6v6" />
           <HeadStat label="Formulários" value={forms} d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />
           <HeadStat label="Usuários" value={users} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5" />
@@ -98,15 +98,15 @@ export function WorkspacesManager({ workspaces }: { workspaces: WsItem[] }) {
 
 function HeadStat({ label, value, d }: { label: string; value: number; d: string }) {
   return (
-    <div className="gl-stat">
-      <span className="gl-stat__ico">
+    <div className="ga-stat">
+      <span className="ga-stat__ico">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d={d} />
         </svg>
       </span>
       <div>
-        <div className="gl-stat__v">{value}</div>
-        <div className="gl-stat__l">{label}</div>
+        <div className="ga-stat__v">{value}</div>
+        <div className="ga-stat__l">{label}</div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PillTabs } from "@/components/PillTabs";
 import { Logo } from "@/components/Logo";
 
 export function FormResultsTopBar({
@@ -17,14 +18,14 @@ export function FormResultsTopBar({
           ←
         </Link>
         <Link href="/admin/forms" className="shrink-0">
-          <Logo height={26} />
+          <Logo height={30} />
         </Link>
         <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
           {formName}
         </span>
       </div>
 
-      <div className="hidden shrink-0 items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
+      <PillTabs className="hidden md:flex" label="Navegação do formulário">
         {canManage && (
           <>
             <PillLink href={`/admin/forms/${formId}`} icon={<IconEdit />}>Editor</PillLink>
@@ -32,11 +33,11 @@ export function FormResultsTopBar({
             <PillLink href={`/admin/forms/${formId}?tab=share`} icon={<IconShare />}>Compartilhar</PillLink>
           </>
         )}
-        <span className="flex items-center gap-2 rounded-full bg-[var(--text)] px-4 py-1.5 text-sm font-medium text-white">
+        <span className="ga-tab" data-active="true">
           <IconResults />
           Resultados
         </span>
-      </div>
+      </PillTabs>
 
       <div className="flex flex-1 items-center justify-end">
         {canManage && (
@@ -64,7 +65,7 @@ function PillLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-[var(--text2)] transition hover:text-[var(--text)]"
+      className="ga-tab"
     >
       {icon}
       {children}

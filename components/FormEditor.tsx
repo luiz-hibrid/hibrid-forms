@@ -1,5 +1,6 @@
 "use client";
 
+import { PillTabs } from "@/components/PillTabs";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
@@ -499,7 +500,7 @@ export function FormEditor({
             ←
           </button>
           <span className="shrink-0">
-            <Logo height={26} />
+            <Logo height={30} />
           </span>
           <span className="min-w-0 max-w-[200px] truncate text-sm font-medium text-[var(--text2)]">
             {name}
@@ -507,7 +508,7 @@ export function FormEditor({
         </div>
 
         {/* Nav pílula central */}
-        <div className="hidden shrink-0 items-center gap-1 rounded-full bg-[var(--bg)] p-1 md:flex">
+        <PillTabs className="hidden md:flex" label="Navegação do formulário">
           <NavPill active={topTab === "edit"} onClick={() => setTopTab("edit")} icon={<IconEdit />}>
             Editor
           </NavPill>
@@ -519,12 +520,12 @@ export function FormEditor({
           </NavPill>
           <a
             href={`/admin/forms/${initial.id}/respostas`}
-            className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium text-[var(--text2)] hover:text-[var(--text)]"
+            className="ga-tab"
           >
             <IconResults />
             Resultados
           </a>
-        </div>
+        </PillTabs>
 
         <div className="flex flex-1 items-center justify-end gap-3">
           {msg && (
@@ -553,7 +554,7 @@ export function FormEditor({
         <div className="flex flex-1 overflow-hidden">
           {/* Coluna esquerda */}
           <aside className="w-[340px] shrink-0 overflow-y-auto overflow-x-hidden border-r border-[var(--border)] bg-[var(--card)] p-3">
-            <div className="mb-3 flex items-center gap-1 rounded-lg bg-[var(--bg)] p-1">
+            <PillTabs size="sm" fill className="mb-3" label="Seção do editor">
               <SideTab active={leftTab === "content"} onClick={() => setLeftTab("content")}>
                 Conteúdo
               </SideTab>
@@ -563,7 +564,7 @@ export function FormEditor({
               <SideTab active={leftTab === "settings"} onClick={() => setLeftTab("settings")}>
                 Ajustes
               </SideTab>
-            </div>
+            </PillTabs>
 
             {leftTab === "design" && (
               <DesignPanel theme={theme} updateTheme={updateTheme} />
@@ -821,21 +822,18 @@ export function FormEditor({
           {/* Coluna central — preview */}
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--bg)]">
             <div className="flex items-center justify-center border-b border-[var(--border)] py-2.5">
-              <div className="flex items-center gap-1 rounded-full bg-[var(--bg)] p-1">
+              <PillTabs size="sm" label="Dispositivo">
                 {(["desktop", "tablet", "mobile"] as const).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDevice(d)}
-                    className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
-                      device === d
-                        ? "bg-[var(--card)] text-[var(--text)] shadow-sm"
-                        : "text-[var(--text2)] hover:text-[var(--text)]"
-                    }`}
+                    className="ga-tab"
+                    data-active={device === d}
                   >
                     {d === "desktop" ? "Desktop" : d === "tablet" ? "Tablet" : "Mobile"}
                   </button>
                 ))}
-              </div>
+              </PillTabs>
             </div>
             <div className="flex flex-1 items-stretch justify-center overflow-y-auto p-6">
               <div
@@ -1552,22 +1550,19 @@ function Segmented({
   options: { value: string; label: React.ReactNode }[];
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-full bg-[var(--bg)] p-1">
+    <PillTabs size="sm" className="!inline-flex">
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           onClick={() => onChange(o.value)}
-          className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
-            value === o.value
-              ? "bg-[var(--card)] text-[var(--text)] shadow-sm"
-              : "text-[var(--text2)] hover:text-[var(--text)]"
-          }`}
+          className="ga-tab"
+          data-active={value === o.value}
         >
           {o.label}
         </button>
       ))}
-    </div>
+    </PillTabs>
   );
 }
 
@@ -2328,9 +2323,8 @@ function NavPill({
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition ${
-        active ? "bg-[var(--text)] text-white" : "text-[var(--text2)] hover:text-[var(--text)]"
-      }`}
+      className="ga-tab"
+      data-active={active}
     >
       {icon}
       {children}
@@ -2388,9 +2382,8 @@ function SideTab({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
-        active ? "bg-[var(--card)] text-[var(--text)] shadow-sm" : "text-[var(--text2)]"
-      }`}
+      className="ga-tab"
+      data-active={active}
     >
       {children}
     </button>

@@ -31,9 +31,9 @@ export default async function WorkspaceDetail({
   return (
     <main className="min-h-screen bg-[var(--bg)]">
       <AdminHeader />
-      <div className="gl-head">
+      <div className="ga-head">
         <div>
-          <Link href="/admin/workspaces" className="gl-pill-btn mb-3 !h-8 !px-3 text-xs">
+          <Link href="/admin/workspaces" className="ga-pill-btn mb-3 !h-8 !px-3 text-xs">
             ← Clientes
           </Link>
           <h1>{ws.name}</h1>

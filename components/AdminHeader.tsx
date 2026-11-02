@@ -27,10 +27,10 @@ export async function AdminHeader() {
   }
 
   return (
-    <header className="gl-top">
-      <div className="gl-top__left">
+    <header className="ga-top">
+      <div className="ga-top__left">
         <Link href="/admin/forms" aria-label="Início" className="transition hover:opacity-80">
-          <Logo height={29} />
+          <Logo height={40} />
         </Link>
         {s && (
           <WorkspaceSwitcher
@@ -42,7 +42,7 @@ export async function AdminHeader() {
         )}
       </div>
       {s ? <AdminNav role={s.role} /> : <div />}
-      <div className="gl-top__right">
+      <div className="ga-top__right">
         <LogoutButton />
       </div>
     </header>

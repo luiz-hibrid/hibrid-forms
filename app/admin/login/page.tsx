@@ -74,7 +74,7 @@ export default function AdminLogin() {
 
   return (
     <main className="login-page">
-      <Logo height={34} className="login-logo" />
+      <Logo height={56} className="login-logo" />
 
       <form onSubmit={submit} className="login-card">
         <h1 className="login-title">Acessar leads</h1>
