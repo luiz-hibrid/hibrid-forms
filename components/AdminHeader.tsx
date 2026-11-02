@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { LogoutButton } from "@/components/LogoutButton";
+import { AdminNav } from "@/components/AdminNav";
 import { WorkspaceSwitcher } from "@/components/WorkspaceSwitcher";
 import { getSession, activeWorkspaceId } from "@/lib/auth";
 import { listWorkspaces } from "@/lib/users";
@@ -26,8 +27,8 @@ export async function AdminHeader() {
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--card)] px-5 py-3 sm:px-8">
-      <div className="flex items-center gap-3">
+    <header className="gl-top">
+      <div className="gl-top__left">
         <Link href="/admin/forms" aria-label="Início" className="transition hover:opacity-80">
           <Logo height={29} />
         </Link>
@@ -40,7 +41,10 @@ export async function AdminHeader() {
           />
         )}
       </div>
-      <LogoutButton />
+      {s ? <AdminNav role={s.role} /> : <div />}
+      <div className="gl-top__right">
+        <LogoutButton />
+      </div>
     </header>
   );
 }

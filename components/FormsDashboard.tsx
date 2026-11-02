@@ -79,8 +79,24 @@ export function FormsDashboard({
     else alert("Não foi possível criar o formulário.");
   }
 
+  const totalResponses = forms.reduce((n, f) => n + f.responses, 0);
+  const published = forms.filter((f) => f.published).length;
+
   return (
-    <div className="mx-auto flex max-w-[1100px] gap-6 px-5 py-8 sm:px-8">
+    <>
+    <div className="gl-head">
+      <h1>
+        Meus
+        <br />
+        Formulários
+      </h1>
+      <div className="gl-stats">
+        <HeadStat label="Formulários" value={forms.length} d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />
+        <HeadStat label="Publicados" value={published} d="M5 12.5l4.5 4.5L19 7.5" />
+        <HeadStat label="Respostas" value={totalResponses} d="M9 11a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM3 20c.6-3.2 3-5 6-5s5.4 1.8 6 5M16 5.2a3.5 3.5 0 010 6.6M18 15c1.8.6 3 2.2 3.5 5" />
+      </div>
+    </div>
+    <div className="mx-auto flex max-w-[1240px] gap-6 px-4 py-7 sm:px-8">
       {/* Sidebar de pastas */}
       <aside className="hidden w-[190px] shrink-0 md:block">
         <div className="lbl mb-3">Pastas</div>
@@ -268,6 +284,23 @@ export function FormsDashboard({
 
         {/* Últimos leads */}
         <RecentLeads leads={recentLeads} />
+      </div>
+    </div>
+    </>
+  );
+}
+
+function HeadStat({ label, value, d }: { label: string; value: number; d: string }) {
+  return (
+    <div className="gl-stat">
+      <span className="gl-stat__ico">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d={d} />
+        </svg>
+      </span>
+      <div>
+        <div className="gl-stat__v">{value}</div>
+        <div className="gl-stat__l">{label}</div>
       </div>
     </div>
   );

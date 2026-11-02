@@ -63,7 +63,7 @@ export function WorkspaceSwitcher({
   // Cliente: rótulo travado, sem dropdown
   if (role === "client") {
     return (
-      <div className="inline-flex items-center gap-2 rounded-full bg-[var(--bg)] px-3 py-1.5">
+      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--gl-rim,#fff)] bg-[var(--card)] px-3 py-1.5">
         <Avatar name={label} />
         <span className="max-w-[160px] truncate text-sm font-medium text-[var(--text)]">
           {label}

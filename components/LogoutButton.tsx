@@ -12,7 +12,7 @@ export function LogoutButton() {
   return (
     <button
       onClick={logout}
-      className="text-sm text-[var(--text2)] transition hover:text-[var(--text)]"
+      className="gl-pill-btn"
     >
       Sair
     </button>
